@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RecipeGPT — Minecraft Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root {
+  --dirt:       #866043;
+  --dirt-dark:  #5C3D1E;
+  --dirt-light: #A0714F;
+  --grass:      #5D9E2F;
+  --grass-dark: #3D6E1A;
+  --grass-top:  #79C240;
+  --stone:      #8B8B8B;
+  --stone-dark: #5A5A5A;
+  --stone-light:#B0B0B0;
+  --wood:       #B8862A;
+  --wood-dark:  #7A5518;
+  --planks:     #C8A44A;
+  --sky:        #7EC8E3;
+  --sky-dark:   #5AAECF;
+  --night:      #1A2744;
+  --night-mid:  #0D1A35;
+  --creeper:    #4CAF50;
+  --creeper-dark:#2E7D32;
+  --gold-ore:   #FFD700;
+  --diamond:    #4DD9E0;
+  --redstone:   #FF3333;
+  --lava:       #FF6600;
+  --obsidian:   #1A0D2E;
+  --white:      #F0F0F0;
+  --pixel:      4px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Pixelated rendering everywhere ── */
+* { image-rendering: pixelated; }
+
+html { scroll-behavior: auto; }
+
+body {
+  background: var(--night);
+  color: var(--white);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  line-height: 1.8;
+  overflow-x: hidden;
+  cursor: none;
+  min-height: 100vh;
+}
+
+/* ── Pixel cursor (sword) ── */
+#cursor {
+  position: fixed;
+  width: 20px; height: 20px;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-4px, -4px);
+  image-rendering: pixelated;
+}
+#cursor svg { width: 100%; height: 100%; }
+
+/* ── Starfield bg ── */
+.stars {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.star {
+  position: absolute;
+  background: white;
+  width: 2px; height: 2px;
+  animation: twinkle var(--d,2s) var(--delay,0s) infinite;
+}
+@keyframes twinkle {
+  0%,100%{opacity:1} 50%{opacity:0.1}
+}
+
+/* ── Pixel border mixin ── */
+.pixel-border {
+  box-shadow:
+    inset -4px -4px 0 rgba(0,0,0,0.4),
+    inset 4px 4px 0 rgba(255,255,255,0.2);
+}
+.pixel-border-dark {
+  box-shadow:
+    inset -4px -4px 0 rgba(0,0,0,0.6),
+    inset 4px 4px 0 rgba(255,255,255,0.1);
+}
+
+/* ── Block texture backgrounds ── */
+.bg-dirt {
+  background-color: var(--dirt);
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 7px, rgba(0,0,0,0.08) 7px, rgba(0,0,0,0.08) 8px),
+    repeating-linear-gradient(90deg, transparent, transparent 7px, rgba(0,0,0,0.08) 7px, rgba(0,0,0,0.08) 8px),
+    radial-gradient(circle at 20% 30%, rgba(0,0,0,0.15) 2px, transparent 2px),
+    radial-gradient(circle at 70% 60%, rgba(0,0,0,0.1) 2px, transparent 2px),
+    radial-gradient(circle at 50% 80%, rgba(255,255,255,0.05) 2px, transparent 2px);
+}
+.bg-stone {
+  background-color: var(--stone);
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 15px, rgba(0,0,0,0.1) 15px, rgba(0,0,0,0.1) 16px),
+    repeating-linear-gradient(90deg, transparent, transparent 15px, rgba(0,0,0,0.1) 15px, rgba(0,0,0,0.1) 16px);
+}
+.bg-planks {
+  background-color: var(--planks);
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 15px, rgba(0,0,0,0.15) 15px, rgba(0,0,0,0.15) 16px),
+    repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(0,0,0,0.1) 31px, rgba(0,0,0,0.1) 32px);
+}
+.bg-obsidian {
+  background-color: var(--obsidian);
+  background-image:
+    radial-gradient(ellipse at 20% 20%, rgba(100,60,160,0.2) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(60,20,120,0.15) 0%, transparent 50%);
+}
+.bg-grass-block {
+  background: linear-gradient(to bottom,
+    var(--grass-top) 0%, var(--grass-top) 20%,
+    var(--dirt) 20%);
+}
+
+/* ── Nav ── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 500;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: rgba(13,26,53,0.95);
+  border-bottom: 4px solid var(--stone-dark);
+  box-shadow: 0 4px 0 var(--stone-dark);
+}
+.nav-logo {
+  font-size: 13px;
+  color: var(--white);
+  text-decoration: none;
+  text-shadow: 3px 3px 0 #000;
+  letter-spacing: 2px;
+}
+.nav-logo .green { color: var(--grass-top); }
+.nav-tag {
+  font-size: 7px;
+  color: #888;
+  letter-spacing: 1px;
+}
+.nav-hotbar {
+  display: flex;
+  gap: 4px;
+}
+.hotbar-slot {
+  width: 36px; height: 36px;
+  background: var(--stone-dark);
+  border: 2px solid #333;
+  box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: none;
+  transition: background 0.1s;
+}
+.hotbar-slot:hover { background: #555; }
+.hotbar-slot.active {
+  border-color: var(--white);
+  box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 var(--white);
+}
+
+/* ── Hero ── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 80px 48px 48px;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* Minecraft landscape silhouette */
+.mc-landscape {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 160px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Pixel art blocks in landscape */
+.landscape-blocks {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 160px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.block {
+  flex-shrink: 0;
+  image-rendering: pixelated;
+}
+.block-grass { background: var(--grass); }
+.block-dirt  { background: var(--dirt); }
+.block-stone { background: var(--stone-dark); }
+.block-tree  { background: var(--grass-dark); }
+.block-log   { background: var(--wood-dark); }
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 800px;
+}
+
+/* Pixel art title */
+.hero-eyebrow {
+  font-size: 8px;
+  color: var(--grass-top);
+  letter-spacing: 3px;
+  margin-bottom: 24px;
+  text-shadow: 2px 2px 0 #000;
+  animation: fadeIn 0.5s 0.2s both;
+}
+.hero-eyebrow::before { content: '> '; color: var(--gold-ore); }
+
+.hero-title {
+  font-size: clamp(20px, 4vw, 42px);
+  line-height: 1.3;
+  color: var(--white);
+  text-shadow: 4px 4px 0 #000, 6px 6px 0 rgba(0,0,0,0.4);
+  margin-bottom: 16px;
+  animation: fadeIn 0.5s 0.4s both;
+}
+.hero-title .gold  { color: var(--gold-ore); display: block; }
+.hero-title .green { color: var(--grass-top); }
+
+.hero-desc {
+  font-size: 8px;
+  color: #aaa;
+  line-height: 2.2;
+  max-width: 500px;
+  margin-bottom: 40px;
+  text-shadow: 1px 1px 0 #000;
+  animation: fadeIn 0.5s 0.6s both;
+}
+
+.hero-btns {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  animation: fadeIn 0.5s 0.8s both;
+}
+
+/* ── MC Button ── */
+.mc-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  padding: 12px 20px;
+  cursor: none;
+  border: none;
+  text-decoration: none;
+  display: inline-block;
+  position: relative;
+  transition: transform 0.05s, filter 0.1s;
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+}
+.mc-btn:active { transform: translateY(2px); }
+
+.mc-btn-green {
+  background: var(--grass);
+  color: #fff;
+  box-shadow: inset -4px -4px 0 var(--grass-dark), inset 4px 4px 0 var(--grass-top), 0 4px 0 #000;
+}
+.mc-btn-green:hover { filter: brightness(1.15); }
+
+.mc-btn-stone {
+  background: var(--stone);
+  color: #fff;
+  box-shadow: inset -4px -4px 0 var(--stone-dark), inset 4px 4px 0 var(--stone-light), 0 4px 0 #000;
+}
+.mc-btn-stone:hover { filter: brightness(1.15); }
+
+.mc-btn-gold {
+  background: var(--wood);
+  color: #fff;
+  box-shadow: inset -4px -4px 0 var(--wood-dark), inset 4px 4px 0 var(--gold-ore), 0 4px 0 #000;
+}
+.mc-btn-gold:hover { filter: brightness(1.15); }
+
+.mc-btn-big {
+  font-size: 11px;
+  padding: 16px 28px;
+  width: 100%;
+  margin-top: 12px;
+}
+.mc-btn-big:disabled { filter: grayscale(0.7); opacity: 0.6; }
+
+/* ── XP Bar ── */
+.xp-bar-wrap {
+  background: #000;
+  border: 2px solid #222;
+  padding: 2px;
+  margin-bottom: 40px;
+  max-width: 300px;
+}
+.xp-bar {
+  height: 10px;
+  background: linear-gradient(90deg, var(--creeper), var(--grass-top));
+  width: 0%;
+  transition: width 1.5s ease;
+  box-shadow: 0 0 6px var(--grass-top);
+}
+.xp-label {
+  font-size: 7px;
+  color: var(--grass-top);
+  text-align: right;
+  margin-top: 4px;
+}
+
+/* ── Stats inventory bar ── */
+.inventory-bar {
+  background: rgba(0,0,0,0.7);
+  border-top: 4px solid #555;
+  border-bottom: 4px solid #222;
+  padding: 16px 48px;
+  display: flex;
+  gap: 48px;
+  overflow-x: auto;
+  position: relative;
+  z-index: 1;
+}
+.inv-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.inv-icon {
+  width: 32px; height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  image-rendering: pixelated;
+}
+.inv-info {}
+.inv-num {
+  font-size: 12px;
+  color: var(--gold-ore);
+  text-shadow: 2px 2px 0 #000;
+  display: block;
+}
+.inv-label {
+  font-size: 6px;
+  color: #888;
+  display: block;
+  margin-top: 2px;
+}
+
+/* ── Generator (Crafting Table) ── */
+.crafting-section {
+  padding: 64px 48px;
+  position: relative;
+  z-index: 1;
+}
+
+.mc-section-header {
+  margin-bottom: 40px;
+}
+.mc-section-tag {
+  font-size: 7px;
+  color: var(--creeper);
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+  text-shadow: 1px 1px 0 #000;
+}
+.mc-section-tag::before { content: '[ '; }
+.mc-section-tag::after  { content: ' ]'; }
+.mc-section-title {
+  font-size: clamp(14px, 2.5vw, 24px);
+  color: var(--white);
+  text-shadow: 3px 3px 0 #000;
+  line-height: 1.4;
+}
+.mc-section-title .gold { color: var(--gold-ore); }
+
+/* Crafting table layout */
+.crafting-table {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 24px;
+  margin-top: 32px;
+}
+
+/* Left panel — ingredients */
+.ingredients-panel {
+  background: var(--stone-dark);
+  border: 4px solid #222;
+  box-shadow: inset -4px -4px 0 #000, inset 4px 4px 0 #666;
+  padding: 20px;
+}
+
+.panel-title {
+  font-size: 8px;
+  color: var(--gold-ore);
+  text-shadow: 2px 2px 0 #000;
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #444;
+}
+
+.mc-label {
+  font-size: 6px;
+  color: #aaa;
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 6px;
+  text-shadow: 1px 1px 0 #000;
+}
+
+/* MC text input */
+.mc-input {
+  width: 100%;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  background: #000;
+  border: 2px solid #555;
+  box-shadow: inset 2px 2px 0 #000, inset -2px -2px 0 #333;
+  color: var(--white);
+  padding: 10px 12px;
+  outline: none;
+  letter-spacing: 1px;
+  transition: border-color 0.1s;
+}
+.mc-input:focus { border-color: var(--white); }
+.mc-input::placeholder { color: #555; }
+
+/* Quick picks grid */
+.quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 10px;
+}
+.qpick {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  background: var(--stone-dark);
+  border: 2px solid #555;
+  box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 #777;
+  color: #aaa;
+  padding: 7px 6px;
+  cursor: none;
+  text-align: left;
+  transition: all 0.1s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qpick:hover, .qpick.active {
+  background: var(--grass-dark);
+  color: var(--white);
+  border-color: var(--grass-top);
+  box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 var(--grass-top);
+}
+.qpick .emoji { margin-right: 4px; }
+
+/* Slider */
+.mc-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.mc-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 8px;
+  background: #000;
+  border: 2px solid #555;
+  outline: none;
+}
+.mc-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 20px;
+  background: var(--stone-light);
+  border: 2px solid #222;
+  box-shadow: -2px 0 0 #000, 2px 0 0 #aaa;
+  cursor: none;
+}
+.mc-slider-val {
+  font-size: 9px;
+  color: var(--gold-ore);
+  min-width: 24px;
+  text-align: right;
+  text-shadow: 1px 1px 0 #000;
+}
+
+/* Tab selector */
+.mc-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.mc-tab {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  background: var(--stone-dark);
+  border: 2px solid #444;
+  box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 #666;
+  color: #888;
+  padding: 6px 8px;
+  cursor: none;
+  transition: all 0.1s;
+  flex: 1;
+  text-align: center;
+  white-space: nowrap;
+}
+.mc-tab:hover { color: #ccc; }
+.mc-tab.active {
+  background: var(--grass-dark);
+  color: var(--white);
+  border-color: var(--grass-top);
+  box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 var(--grass-top);
+}
+
+/* Crafted-by badge */
+.crafted-badge {
+  margin-top: 16px;
+  background: #000;
+  border: 2px solid #333;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.badge-icon { font-size: 20px; }
+.badge-name {
+  font-size: 8px;
+  color: var(--grass-top);
+  text-shadow: 1px 1px 0 #000;
+  display: block;
+}
+.badge-sub {
+  font-size: 5px;
+  color: #555;
+  display: block;
+  margin-top: 3px;
+}
+
+/* ── Output panel (furnace) ── */
+.furnace-panel {
+  background: #1a1a1a;
+  border: 4px solid #222;
+  box-shadow: inset -4px -4px 0 #000, inset 4px 4px 0 #444;
+  display: flex;
+  flex-direction: column;
+}
+
+.furnace-top {
+  background: var(--stone-dark);
+  border-bottom: 4px solid #111;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.furnace-label {
+  font-size: 7px;
+  color: var(--gold-ore);
+  text-shadow: 1px 1px 0 #000;
+}
+.furnace-status {
+  font-size: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.furnace-fire {
+  font-size: 12px;
+  animation: firePulse 0.6s infinite;
+}
+@keyframes firePulse {
+  0%,100% { filter: brightness(1); }
+  50%      { filter: brightness(1.5) saturate(1.5); }
+}
+.fire-hidden { visibility: hidden; }
+
+.furnace-output {
+  flex: 1;
+  padding: 20px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  line-height: 2;
+  color: var(--white);
+  min-height: 400px;
+  overflow-y: auto;
+  max-height: 60vh;
+  position: relative;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(255,255,255,0.02) 31px, rgba(255,255,255,0.02) 32px);
+}
+
+.furnace-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  pointer-events: none;
+}
+.placeholder-craft {
+  font-size: 40px;
+  animation: float 3s ease-in-out infinite;
+}
+@keyframes float {
+  0%,100%{ transform: translateY(0); }
+  50%    { transform: translateY(-8px); }
+}
+.placeholder-msg {
+  font-size: 7px;
+  color: #444;
+  text-align: center;
+  line-height: 2;
+}
+
+/* Recipe output formatting */
+.recipe-out { display: none; }
+.recipe-out.show { display: block; }
+
+.r-name-mc {
+  font-size: 11px;
+  color: var(--gold-ore);
+  text-shadow: 3px 3px 0 #000;
+  display: block;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+.r-meta-mc {
+  font-size: 6px;
+  color: var(--grass-top);
+  display: block;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #333;
+}
+.r-section-mc {
+  font-size: 8px;
+  color: var(--diamond);
+  text-shadow: 2px 2px 0 #000;
+  display: block;
+  margin: 16px 0 8px;
+  letter-spacing: 2px;
+}
+.r-section-mc::before { content: '▶ '; color: var(--gold-ore); }
+.r-item-mc {
+  font-size: 7px;
+  color: #ccc;
+  display: block;
+  padding-left: 16px;
+  margin: 4px 0;
+  position: relative;
+}
+.r-item-mc::before { content: '◆ '; color: var(--creeper); position: absolute; left: 0; }
+.r-step-mc {
+  font-size: 7px;
+  color: #ccc;
+  display: block;
+  padding-left: 24px;
+  margin: 6px 0;
+  position: relative;
+  line-height: 1.9;
+}
+.r-step-num-mc {
+  position: absolute; left: 0;
+  color: var(--gold-ore);
+  font-size: 8px;
+  text-shadow: 1px 1px 0 #000;
+}
+.r-tips-mc {
+  display: block;
+  margin-top: 16px;
+  background: rgba(77,217,224,0.08);
+  border-left: 4px solid var(--diamond);
+  padding: 12px;
+  font-size: 7px;
+  color: #9aecf0;
+  line-height: 2;
+}
+.r-tips-mc::before {
+  content: '💎 PRO TIP: ';
+  color: var(--diamond);
+}
+
+.mc-cursor {
+  display: inline-block;
+  width: 8px; height: 14px;
+  background: var(--white);
+  vertical-align: middle;
+  animation: blink 0.7s steps(1) infinite;
+  margin-left: 2px;
+}
+@keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+
+.furnace-bottom {
+  background: var(--stone-dark);
+  border-top: 4px solid #111;
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.furnace-stats {
+  font-size: 6px;
+  color: #555;
+  display: flex;
+  gap: 16px;
+}
+.furnace-stats span { color: #888; }
+
+.copy-mc {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  background: var(--stone-dark);
+  border: 2px solid #444;
+  box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 #666;
+  color: #aaa;
+  padding: 5px 10px;
+  cursor: none;
+  transition: all 0.1s;
+}
+.copy-mc:hover {
+  background: var(--grass-dark);
+  color: var(--white);
+  border-color: var(--grass-top);
+}
+
+/* ── How it works (Enchanting Table style) ── */
+.enchant-section {
+  padding: 64px 48px;
+  background: linear-gradient(to bottom, var(--night), var(--obsidian));
+  border-top: 4px solid #333;
+  border-bottom: 4px solid #333;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}
+.enchant-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 100%, rgba(100,60,200,0.15) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.enchant-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 40px;
+  max-width: 1100px;
+}
+
+.enchant-card {
+  background: rgba(100,60,200,0.1);
+  border: 4px solid #5A3A8A;
+  box-shadow: inset -4px -4px 0 rgba(0,0,0,0.5), inset 4px 4px 0 rgba(150,100,255,0.1);
+  padding: 24px 20px;
+  position: relative;
+  transition: border-color 0.2s;
+}
+.enchant-card:hover { border-color: #9B59B6; }
+.enchant-card:hover .enchant-num { opacity: 0.25; }
+
+.enchant-num {
+  font-size: 48px;
+  color: rgba(150,100,255,0.08);
+  position: absolute;
+  top: 8px; right: 16px;
+  line-height: 1;
+  transition: opacity 0.2s;
+}
+.enchant-icon { font-size: 24px; display: block; margin-bottom: 12px; }
+.enchant-title {
+  font-size: 9px;
+  color: #C39BD3;
+  text-shadow: 2px 2px 0 #000;
+  margin-bottom: 10px;
+  display: block;
+}
+.enchant-desc {
+  font-size: 6px;
+  color: #888;
+  line-height: 2.2;
+}
+
+/* ── Showcase (Chest inventory) ── */
+.chest-section {
+  padding: 64px 48px;
+  position: relative;
+  z-index: 1;
+}
+
+.chest-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.chest-slot {
+  background: var(--stone-dark);
+  border: 4px solid #222;
+  box-shadow: inset -4px -4px 0 #000, inset 4px 4px 0 #555;
+  padding: 20px 16px;
+  cursor: none;
+  transition: all 0.1s;
+  position: relative;
+}
+.chest-slot:hover {
+  border-color: var(--gold-ore);
+  box-shadow: inset -4px -4px 0 #000, inset 4px 4px 0 var(--gold-ore);
+  transform: scale(1.01);
+}
+.chest-slot::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #000;
+  border: 2px solid #555;
+  color: var(--white);
+  font-size: 6px;
+  padding: 6px 8px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+.chest-slot:hover::after { opacity: 1; }
+
+.chest-cat {
+  font-size: 6px;
+  color: var(--creeper);
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  text-shadow: 1px 1px 0 #000;
+}
+.chest-name {
+  font-size: 10px;
+  color: var(--gold-ore);
+  text-shadow: 2px 2px 0 #000;
+  margin-bottom: 10px;
+  line-height: 1.5;
+  display: block;
+}
+.chest-desc {
+  font-size: 6px;
+  color: #888;
+  line-height: 2;
+  margin-bottom: 12px;
+}
+.chest-craft {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  background: none;
+  border: none;
+  color: var(--diamond);
+  cursor: none;
+  padding: 0;
+  letter-spacing: 1px;
+  transition: color 0.1s;
+}
+.chest-craft:hover { color: var(--white); }
+.chest-craft::before { content: '▶ '; color: var(--gold-ore); }
+
+/* ── Footer ── */
+footer {
+  background: var(--obsidian);
+  border-top: 4px solid #333;
+  padding: 32px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+.footer-logo {
+  font-size: 12px;
+  color: #555;
+  text-shadow: 2px 2px 0 #000;
+}
+.footer-logo .green { color: var(--grass); }
+.footer-copy {
+  font-size: 6px;
+  color: #444;
+  text-align: center;
+  line-height: 2.5;
+}
+.footer-copy a { color: var(--creeper); text-decoration: none; }
+.footer-version {
+  font-size: 6px;
+  color: #333;
+}
+
+/* ── Creeper face decoration ── */
+.creeper-face {
+  display: inline-grid;
+  grid-template-columns: repeat(5, 8px);
+  grid-template-rows: repeat(7, 8px);
+  image-rendering: pixelated;
+  gap: 0;
+}
+.cf { width: 8px; height: 8px; }
+.cg { background: var(--creeper); }
+.cd { background: var(--creeper-dark); }
+.cb { background: #000; }
+.cn { background: transparent; }
+
+/* ── Animations ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Dig animation on button click */
+@keyframes dig {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* ── Progress / Loading ── */
+.loading-bar-wrap {
+  width: 100%;
+  height: 12px;
+  background: #000;
+  border: 2px solid #333;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.loading-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--creeper), var(--grass-top), var(--gold-ore));
+  background-size: 200% 100%;
+  animation: loadingMove 1s linear infinite;
+  width: 0%;
+  transition: width 0.3s;
+}
+@keyframes loadingMove {
+  0%   { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+
+/* ── Particles (breaking blocks) ── */
+.particle {
+  position: fixed;
+  width: 6px; height: 6px;
+  background: var(--dirt);
+  pointer-events: none;
+  z-index: 1000;
+  animation: particleFly var(--dur,0.8s) ease-out forwards;
+}
+@keyframes particleFly {
+  0%   { opacity: 1; transform: translate(0,0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--tx,20px), var(--ty,40px)) scale(0.3); }
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .crafting-table, .enchant-grid, .chest-grid { grid-template-columns: 1fr; }
+  nav .nav-hotbar { display: none; }
+  .hero { padding: 80px 24px 48px; }
+  .crafting-section, .chest-section, .enchant-section { padding: 48px 24px; }
+  .inventory-bar { padding: 16px 24px; }
+  footer { flex-direction: column; gap: 16px; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- Custom crosshair cursor -->
+<div id="cursor">
+  <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Minecraft sword pixel art -->
+    <rect x="13" y="1" width="4" height="4" fill="#88CCFF"/>
+    <rect x="11" y="3" width="4" height="4" fill="#88CCFF"/>
+    <rect x="9"  y="5" width="4" height="4" fill="#AADDFF"/>
+    <rect x="7"  y="7" width="4" height="4" fill="#C8E8FF"/>
+    <rect x="5"  y="9" width="4" height="4" fill="#8B6914"/>
+    <rect x="3"  y="11" width="4" height="4" fill="#6B4D0E"/>
+    <rect x="1"  y="13" width="4" height="4" fill="#4A320A"/>
+  </svg>
+</div>
+
+<!-- Stars -->
+<div class="stars" id="stars"></div>
+
+<!-- Nav -->
+<nav>
+  <a href="#" class="nav-logo">Recipe<span class="green">GPT</span></a>
+  <span class="nav-tag">BY DICYPR · MC EDITION</span>
+  <div class="nav-hotbar">
+    <div class="hotbar-slot active">🍛</div>
+    <div class="hotbar-slot">🌾</div>
+    <div class="hotbar-slot">🔥</div>
+    <div class="hotbar-slot">⚗️</div>
+    <div class="hotbar-slot">💎</div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <!-- Pixel landscape -->
+  <div class="mc-landscape">
+    <canvas id="landscapeCanvas" style="width:100%;height:160px;image-rendering:pixelated;display:block;"></canvas>
+  </div>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">DICYPR PRESENTS</div>
+    <h1 class="hero-title">
+      <span class="gold">RECIPEGPT</span>
+      <span class="green">MINECRAFT</span>
+      EDITION
+    </h1>
+    <p class="hero-desc">
+      CRAFT YOUR PERFECT INDIAN RECIPE.<br>
+      POWERED BY AI. FORGED IN THE NETHER.<br>
+      SERVED HOT LIKE LAVA.
+    </p>
+    <div class="xp-bar-wrap">
+      <div class="xp-bar" id="xpBar"></div>
+      <div class="xp-label">LOADING AI ENGINE...</div>
+    </div>
+    <div class="hero-btns">
+      <a href="#craft" class="mc-btn mc-btn-green">▶ START CRAFTING</a>
+      <a href="#enchant" class="mc-btn mc-btn-stone">? HOW IT WORKS</a>
+    </div>
+  </div>
+</section>
+
+<!-- Inventory bar -->
+<div class="inventory-bar">
+  <div class="inv-item">
+    <div class="inv-icon">⚙️</div>
+    <div class="inv-info">
+      <span class="inv-num">30M</span>
+      <span class="inv-label">PARAMETERS</span>
+    </div>
+  </div>
+  <div class="inv-item">
+    <div class="inv-icon">📚</div>
+    <div class="inv-info">
+      <span class="inv-num">50+</span>
+      <span class="inv-label">RECIPES</span>
+    </div>
+  </div>
+  <div class="inv-item">
+    <div class="inv-icon">🔥</div>
+    <div class="inv-info">
+      <span class="inv-num">8</span>
+      <span class="inv-label">LAYERS</span>
+    </div>
+  </div>
+  <div class="inv-item">
+    <div class="inv-icon">⚡</div>
+    <div class="inv-info">
+      <span class="inv-num">&lt;3S</span>
+      <span class="inv-label">GEN TIME</span>
+    </div>
+  </div>
+  <div class="inv-item">
+    <div class="inv-icon">♾️</div>
+    <div class="inv-info">
+      <span class="inv-num">INF</span>
+      <span class="inv-label">RECIPES</span>
+    </div>
+  </div>
+</div>
+
+<!-- Crafting Section -->
+<section class="crafting-section" id="craft">
+  <div class="mc-section-header">
+    <div class="mc-section-tag">CRAFTING TABLE</div>
+    <h2 class="mc-section-title">CRAFT YOUR<br><span class="gold">RECIPE</span></h2>
+  </div>
+
+  <div class="crafting-table">
+    <!-- Controls -->
+    <div class="ingredients-panel">
+      <div class="panel-title">🧪 SELECT INGREDIENTS</div>
+
+      <div style="margin-bottom:20px">
+        <span class="mc-label">DISH NAME</span>
+        <input class="mc-input" id="dishInput" type="text"
+               placeholder="TYPE DISH NAME..." value="Butter Chicken">
+        <div class="quick-grid" id="quickGrid">
+          <button class="qpick active" onclick="setPick(this,'Butter Chicken')"><span class="emoji">🍗</span>BUTTER CHICKEN</button>
+          <button class="qpick" onclick="setPick(this,'Dal Makhani')"><span class="emoji">🫘</span>DAL MAKHANI</button>
+          <button class="qpick" onclick="setPick(this,'Biryani')"><span class="emoji">🍚</span>BIRYANI</button>
+          <button class="qpick" onclick="setPick(this,'Palak Paneer')"><span class="emoji">🥬</span>PALAK PANEER</button>
+          <button class="qpick" onclick="setPick(this,'Gulab Jamun')"><span class="emoji">🍮</span>GULAB JAMUN</button>
+          <button class="qpick" onclick="setPick(this,'Chole Masala')"><span class="emoji">🫛</span>CHOLE</button>
+          <button class="qpick" onclick="setPick(this,'Rogan Josh')"><span class="emoji">🥩</span>ROGAN JOSH</button>
+          <button class="qpick" onclick="setPick(this,'Kheer')"><span class="emoji">🍶</span>KHEER</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <span class="mc-label">SERVES (PLAYERS)</span>
+        <div class="mc-slider-wrap">
+          <input type="range" class="mc-slider" id="servesSlider" min="1" max="10" value="4"
+                 oninput="document.getElementById('servesVal').textContent=this.value">
+          <span class="mc-slider-val" id="servesVal">4</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <span class="mc-label">SPICE LEVEL (DIFFICULTY)</span>
+        <div class="mc-tabs">
+          <button class="mc-tab active" onclick="setSpice(this,'mild')">🟢 EASY</button>
+          <button class="mc-tab" onclick="setSpice(this,'medium')">🟡 NORMAL</button>
+          <button class="mc-tab" onclick="setSpice(this,'hot')">🔴 HARD</button>
+          <button class="mc-tab" onclick="setSpice(this,'extra hot')">💀 HRDCR</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <span class="mc-label">GAME MODE</span>
+        <div class="mc-tabs">
+          <button class="mc-tab active" onclick="setDiet(this,'any')">🎮 ANY</button>
+          <button class="mc-tab" onclick="setDiet(this,'vegetarian')">🌿 VEG</button>
+          <button class="mc-tab" onclick="setDiet(this,'vegan')">☘️ VEGAN</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <span class="mc-label">RECIPE DETAIL LEVEL</span>
+        <div class="mc-slider-wrap">
+          <input type="range" class="mc-slider" id="detailSlider" min="1" max="3" value="2"
+                 oninput="updateDetail(this.value)">
+          <span class="mc-slider-val" id="detailVal">FULL</span>
+        </div>
+      </div>
+
+      <button class="mc-btn mc-btn-gold mc-btn-big" id="generateBtn" onclick="generateRecipe()">
+        ⚒ CRAFT RECIPE
+      </button>
+
+      <div class="crafted-badge">
+        <span class="badge-icon">🎮</span>
+        <div>
+          <span class="badge-name">DICYPR</span>
+          <span class="badge-sub">AI RECIPE ENGINE · MINECRAFT ED.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Output Furnace -->
+    <div class="furnace-panel">
+      <div class="furnace-top">
+        <span class="furnace-label">🔥 FURNACE OUTPUT</span>
+        <span class="furnace-status">
+          <span class="furnace-fire fire-hidden" id="fireEmoji">🔥</span>
+          <span id="statusText" style="font-size:6px; color:#666">IDLE</span>
+        </span>
+      </div>
+
+      <div class="furnace-output" id="outputBody">
+        <div class="furnace-placeholder" id="placeholder">
+          <div class="placeholder-craft">🍳</div>
+          <div class="placeholder-msg">
+            NO RECIPE CRAFTED YET<br><br>
+            SELECT INGREDIENTS AND<br>
+            PRESS [ CRAFT RECIPE ]<br><br>
+            <span style="color:#333">TIP: USE CRAFTING TABLE ON LEFT</span>
+          </div>
+        </div>
+        <div class="recipe-out" id="recipeOut"></div>
+      </div>
+
+      <div class="furnace-bottom">
+        <div class="furnace-stats">
+          <span id="statChars">0 CHARS</span>
+          <span id="statTime">0.0S</span>
+          <span style="color:#444">DICYPR ENGINE</span>
+        </div>
+        <button class="copy-mc" onclick="copyRecipe()">📋 COPY</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="enchant-section" id="enchant">
+  <div style="max-width:1100px; margin:0 auto">
+    <div class="mc-section-header">
+      <div class="mc-section-tag">ENCHANTING TABLE</div>
+      <h2 class="mc-section-title">HOW IT<br><span class="gold">WORKS</span></h2>
+    </div>
+    <div class="enchant-grid">
+      <div class="enchant-card">
+        <div class="enchant-num">I</div>
+        <span class="enchant-icon">🧠</span>
+        <span class="enchant-title">TRANSFORMER MODEL</span>
+        <div class="enchant-desc">A decoder-only GPT with 8 layers, 8 heads, 512-dim embeddings. Trained from scratch on Indian recipe text — like enchanting a book with culinary knowledge.</div>
+      </div>
+      <div class="enchant-card">
+        <div class="enchant-num">II</div>
+        <span class="enchant-icon">⚡</span>
+        <span class="enchant-title">DICYPR AI ENGINE</span>
+        <div class="enchant-desc">Dicypr's recipe AI streams output token by token — like watching a redstone circuit fire in real time. No page refresh needed. Pure magic.</div>
+      </div>
+      <div class="enchant-card">
+        <div class="enchant-num">III</div>
+        <span class="enchant-icon">🌶️</span>
+        <span class="enchant-title">RECIPE INTELLIGENCE</span>
+        <div class="enchant-desc">The model knows Indian cuisine deeply — Kashmiri spice ratios, South Indian fermentation, Mughal techniques. A culinary diamond pickaxe.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Showcase chest -->
+<section class="chest-section" id="chest">
+  <div class="mc-section-header">
+    <div class="mc-section-tag">CHEST INVENTORY</div>
+    <h2 class="mc-section-title">FEATURED<br><span class="gold">RECIPES</span></h2>
+  </div>
+  <div class="chest-grid">
+    <div class="chest-slot" data-tooltip="CLICK TO CRAFT" onclick="loadShowcase('Butter Chicken')">
+      <div class="chest-cat">🍗 NORTH INDIAN</div>
+      <span class="chest-name">BUTTER CHICKEN</span>
+      <div class="chest-desc">Tender chicken in velvety tomato-cream sauce. Kasuri methi finish. Legendary dish.</div>
+      <button class="chest-craft">CRAFT THIS</button>
+    </div>
+    <div class="chest-slot" data-tooltip="CLICK TO CRAFT" onclick="loadShowcase('Hyderabadi Biryani')">
+      <div class="chest-cat">🍚 HYDERABADI</div>
+      <span class="chest-name">BIRYANI</span>
+      <div class="chest-desc">Dum-cooked basmati, saffron, fried onions. The crown jewel. Rare drop.</div>
+      <button class="chest-craft">CRAFT THIS</button>
+    </div>
+    <div class="chest-slot" data-tooltip="CLICK TO CRAFT" onclick="loadShowcase('Dal Makhani')">
+      <div class="chest-cat">🫘 PUNJABI VEG</div>
+      <span class="chest-name">DAL MAKHANI</span>
+      <div class="chest-desc">Slow-cooked black lentils. Buttery tomato gravy. Rewards patience like finding diamonds.</div>
+      <button class="chest-craft">CRAFT THIS</button>
+    </div>
+    <div class="chest-slot" data-tooltip="CLICK TO CRAFT" onclick="loadShowcase('Masala Dosa')">
+      <div class="chest-cat">🥞 SOUTH INDIAN</div>
+      <span class="chest-name">MASALA DOSA</span>
+      <div class="chest-desc">Fermented rice crepe. Crispy and golden. Spiced potato filling inside.</div>
+      <button class="chest-craft">CRAFT THIS</button>
+    </div>
+    <div class="chest-slot" data-tooltip="CLICK TO CRAFT" onclick="loadShowcase('Gulab Jamun')">
+      <div class="chest-cat">🍮 DESSERT</div>
+      <span class="chest-name">GULAB JAMUN</span>
+      <div class="chest-desc">Khoya dumplings soaked in rose-cardamom syrup. Sweet as a beacon beam.</div>
+      <button class="chest-craft">CRAFT THIS</button>
+    </div>
+    <div class="chest-slot" data-tooltip="CLICK TO CRAFT" onclick="loadShowcase('Rogan Josh')">
+      <div class="chest-cat">🥩 KASHMIRI</div>
+      <span class="chest-name">ROGAN JOSH</span>
+      <div class="chest-desc">Slow-braised lamb. Flame-red. Aromatic Kashmiri spices. Boss-level curry.</div>
+      <button class="chest-craft">CRAFT THIS</button>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-logo">Recipe<span class="green">GPT</span></div>
+  <div class="footer-copy">
+    CRAFTED WITH ❤️ BY <a href="#">DICYPR</a><br>
+    BUILT ON NANOGPT · INSPIRED BY ANDREJ KARPATHY<br>
+    <span style="color:#333">MINECRAFT IS A TRADEMARK OF MOJANG STUDIOS</span>
+  </div>
+  <div class="footer-version">
+    <span style="color:#333">v2.0-MC</span><br>
+    <span style="color:#222">© DICYPR 2025</span>
+  </div>
+</footer>
+
+<script>
+// ── Config ───────────────────────────────────────────────────────────────────
+// Point this to your backend server URL.
+// For local dev:        http://localhost:3000/generate
+// For Railway/Render:   https://your-app.railway.app/generate
+// Leave as-is to call the API directly (requires CORS — use backend in production)
+const BACKEND_URL = 'https://YOUR_BACKEND_URL/generate';
+
+// ── Cursor ──────────────────────────────────────────────────────────────────
+const cur = document.getElementById('cursor');
+document.addEventListener('mousemove', e => {
+  cur.style.left = (e.clientX - 2) + 'px';
+  cur.style.top  = (e.clientY - 2) + 'px';
+});
+
+// ── Stars ────────────────────────────────────────────────────────────────────
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 120; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  s.style.left  = Math.random()*100+'%';
+  s.style.top   = Math.random()*100+'%';
+  s.style.setProperty('--d',     (1.5 + Math.random()*3)+'s');
+  s.style.setProperty('--delay', (Math.random()*3)+'s');
+  starsEl.appendChild(s);
+}
+
+// ── XP bar animation ─────────────────────────────────────────────────────────
+setTimeout(() => {
+  document.getElementById('xpBar').style.width = '100%';
+  document.querySelector('.xp-label').textContent = 'AI ENGINE READY — LVL 30';
+}, 500);
+
+// ── Minecraft landscape canvas ────────────────────────────────────────────────
+const canvas = document.getElementById('landscapeCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width  = window.innerWidth;
+canvas.height = 160;
+
+const BLOCK = 16;
+const cols  = Math.ceil(canvas.width / BLOCK) + 2;
+
+// Heights using Perlin-ish noise
+function pseudoNoise(x) {
+  return Math.sin(x * 0.3) * 0.5 + Math.sin(x * 0.7 + 1) * 0.3 + Math.sin(x * 1.3 + 2) * 0.2;
+}
+
+function drawLandscape() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let x = 0; x < cols; x++) {
+    const h = Math.floor((pseudoNoise(x) + 1) * 3) + 3; // 3-9 blocks high
+    const topY = canvas.height - h * BLOCK;
+    // Grass top
+    ctx.fillStyle = '#79C240';
+    ctx.fillRect(x * BLOCK, topY, BLOCK, BLOCK);
+    // Dirt
+    ctx.fillStyle = '#866043';
+    for (let y = 1; y < h; y++) {
+      ctx.fillRect(x * BLOCK, topY + y * BLOCK, BLOCK, BLOCK);
+    }
+    // Shading
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.fillRect(x * BLOCK + BLOCK - 2, topY, 2, h * BLOCK);
+    ctx.fillRect(x * BLOCK, topY + BLOCK - 2, BLOCK, 2);
+
+    // Occasional trees
+    if (x % 7 === 3 && x > 2) {
+      const tx = x * BLOCK - 8;
+      const ty = topY - BLOCK * 4;
+      // Leaves
+      ctx.fillStyle = '#4a8f20';
+      ctx.fillRect(tx - BLOCK, ty, BLOCK * 3, BLOCK * 2);
+      ctx.fillRect(tx - BLOCK*0.5, ty - BLOCK, BLOCK * 2, BLOCK);
+      // Log
+      ctx.fillStyle = '#7A5518';
+      ctx.fillRect(tx + 4, ty + BLOCK * 2, 8, BLOCK * 2);
+    }
+  }
+}
+drawLandscape();
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let spiceLevel = 'mild', dietMode = 'any', detailLvl = 2;
+let generating = false, startTime = 0;
+
+function setPick(el, val) {
+  document.getElementById('dishInput').value = val;
+  document.querySelectorAll('.qpick').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+function setSpice(el, val) {
+  spiceLevel = val;
+  el.parentElement.querySelectorAll('.mc-tab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+function setDiet(el, val) {
+  dietMode = val;
+  el.parentElement.querySelectorAll('.mc-tab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+function updateDetail(v) {
+  detailLvl = parseInt(v);
+  document.getElementById('detailVal').textContent = ['','QUICK','FULL',"CHEF'S"][v];
+}
+
+function loadShowcase(dish) {
+  document.getElementById('dishInput').value = dish;
+  document.querySelectorAll('.qpick').forEach(b => b.classList.remove('active'));
+  document.getElementById('craft').scrollIntoView({ behavior: 'smooth' });
+  setTimeout(generateRecipe, 700);
+}
+
+// Block break particles
+function spawnParticles(x, y) {
+  const colors = ['#866043','#5C3D1E','#79C240','#4a8f20','#B8862A'];
+  for (let i = 0; i < 12; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = x + 'px';
+    p.style.top  = y + 'px';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    p.style.setProperty('--tx', (Math.random()*80-40)+'px');
+    p.style.setProperty('--ty', (Math.random()*60+20)+'px');
+    p.style.setProperty('--dur', (0.5+Math.random()*0.5)+'s');
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1000);
+  }
+}
+
+document.getElementById('generateBtn').addEventListener('click', function(e) {
+  spawnParticles(e.clientX, e.clientY);
+});
+
+// ── Generate ─────────────────────────────────────────────────────────────────
+async function generateRecipe() {
+  if (generating) return;
+  const dish   = document.getElementById('dishInput').value.trim() || 'Butter Chicken';
+  const serves = document.getElementById('servesSlider').value;
+  const btn    = document.getElementById('generateBtn');
+  const fire   = document.getElementById('fireEmoji');
+  const statTx = document.getElementById('statusText');
+  const outB   = document.getElementById('outputBody');
+  const recOut = document.getElementById('recipeOut');
+  const ph     = document.getElementById('placeholder');
+
+  generating = true;
+  startTime  = Date.now();
+  btn.disabled = true;
+  btn.textContent = '⏳ CRAFTING...';
+  fire.classList.remove('fire-hidden');
+  statTx.textContent = 'SMELTING';
+  statTx.style.color = '#FFD700';
+
+  ph.style.display = 'none';
+  recOut.className = 'recipe-out show';
+  recOut.innerHTML = '<span class="mc-cursor"></span>';
+  document.getElementById('statChars').textContent = '0 CHARS';
+  document.getElementById('statTime').textContent  = '0.0S';
+
+  const detailMap = ['','Keep it brief — essentials only.','Full detail with exact quantities and numbered steps.','Write like a professional chef — techniques, variations, plating, cultural context.'];
+
+  const systemPrompt = `You are RecipeGPT, Minecraft Edition — an expert in authentic Indian cuisine.
+Generate recipes in this EXACT structure:
+
+[RECIPE]
+NAME: <dish name>
+CATEGORY: <cuisine type>
+SERVES: <number>
+PREP TIME: <time>
+COOK TIME: <time>
+
+INGREDIENTS:
+- <quantity> <ingredient>
+
+METHOD:
+1. <step>
+2. <step>
+
+CHEF'S TIPS:
+<2-3 professional tips>
+[/RECIPE]
+
+Be precise. Use authentic Indian techniques. Make it inspiring.`;
+
+  const userPrompt = `Recipe for: ${dish}
+Serves: ${serves}
+Spice: ${spiceLevel}
+Diet: ${dietMode}
+${detailMap[detailLvl]}`;
+
+  let full = '';
+
+  try {
+    const res = await fetch(BACKEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        stream: true,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const lines = decoder.decode(value).split('\n');
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') continue;
+        try {
+          const p = JSON.parse(data);
+          if (p.type === 'content_block_delta' && p.delta?.text) {
+            full += p.delta.text;
+            recOut.innerHTML = formatMC(full) + '<span class="mc-cursor"></span>';
+            outB.scrollTop = outB.scrollHeight;
+            const el = ((Date.now()-startTime)/1000).toFixed(1);
+            document.getElementById('statChars').textContent = full.length+' CHARS';
+            document.getElementById('statTime').textContent  = el+'S';
+          }
+        } catch {}
+      }
+    }
+
+    recOut.innerHTML = formatMC(full);
+    fire.classList.add('fire-hidden');
+    statTx.textContent = '✔ CRAFTED';
+    statTx.style.color = '#5D9E2F';
+
+  } catch(err) {
+    recOut.innerHTML = `<span style="color:#FF3333;font-size:7px;line-height:2.5">
+⚠ ERROR: ${err.message}<br><br>
+<span style="color:#555">THIS DEMO NEEDS AN AI API KEY<br>
+CONFIGURED IN THE BACKEND.<br><br>
+DEPLOY VIA STREAMLIT OR NODE.JS<br>
+SERVER WITH YOUR API KEY.</span></span>`;
+    fire.classList.add('fire-hidden');
+    statTx.textContent = 'ERROR';
+    statTx.style.color = '#FF3333';
+  }
+
+  generating = false;
+  btn.disabled = false;
+  btn.textContent = '⚒ CRAFT RECIPE';
+}
+
+// ── Format output ─────────────────────────────────────────────────────────────
+function formatMC(raw) {
+  return raw
+    .replace(/\[RECIPE\]|\[\/RECIPE\]/g, '')
+    .replace(/^NAME:\s*(.+)$/m,     '<span class="r-name-mc">$1</span>')
+    .replace(/^CATEGORY:\s*(.+)$/m, '<span class="r-meta-mc">$1</span>')
+    .replace(/^(SERVES|PREP TIME|COOK TIME):\s*(.+)$/mg,
+      '<span style="font-size:6px;color:#888;letter-spacing:1px;display:block;margin:2px 0">$1: <span style="color:#FFD700">$2</span></span>')
+    .replace(/^(INGREDIENTS|METHOD|CHEF\'S TIPS):$/mg,
+      '<span class="r-section-mc">$1</span>')
+    .replace(/^- (.+)$/mg,  '<span class="r-item-mc">$1</span>')
+    .replace(/^(\d+)\.\s+(.+)$/mg,
+      '<span class="r-step-mc"><span class="r-step-num-mc">$1.</span>$2</span>')
+    .replace(/CHEF'S TIPS:\s*([\s\S]*?)(<|$)/,
+      (m, tips) => `<span class="r-tips-mc">${tips.trim()}</span>`)
+    .trim();
+}
+
+// ── Copy ──────────────────────────────────────────────────────────────────────
+function copyRecipe() {
+  const txt = document.getElementById('recipeOut').innerText;
+  if (!txt) return;
+  navigator.clipboard.writeText(txt).then(() => {
+    const b = document.querySelector('.copy-mc');
+    b.textContent = '✔ COPIED!';
+    setTimeout(() => b.textContent = '📋 COPY', 2000);
+  });
+}
+
+// ── Hotbar interaction ────────────────────────────────────────────────────────
+document.querySelectorAll('.hotbar-slot').forEach((slot, i) => {
+  slot.addEventListener('click', function() {
+    document.querySelectorAll('.hotbar-slot').forEach(s => s.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// ── Scroll reveal ─────────────────────────────────────────────────────────────
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) e.target.style.animation = 'fadeIn 0.4s ease both';
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.enchant-card, .chest-slot, .inv-item').forEach(el => io.observe(el));
+
+// Smooth scroll for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) t.scrollIntoView({ behavior: 'smooth' });
+  });
+});
+</script>
+</body>
+</html>
