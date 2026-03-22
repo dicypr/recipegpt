@@ -176,10 +176,10 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-audio_path = os.path.join(os.path.dirname(__file__), "sweden.m4a")
+audio_path = os.path.join(os.path.dirname(__file__), "sweden.mp3")
 if os.path.exists(audio_path):
     with open(audio_path, "rb") as f:
-        st.audio(f.read(), format="audio/mp4")
+        st.audio(f.read(), format="audio/mpeg")
 else:
     st.markdown('<div style="font-size:6px;color:#4A4A45;margin-bottom:12px">[ UPLOAD sweden.m4a TO streamlit/ FOLDER TO ENABLE MUSIC ]</div>', unsafe_allow_html=True)
 
