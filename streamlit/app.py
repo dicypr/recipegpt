@@ -10,153 +10,178 @@ st.set_page_config(
     layout="centered",
 )
 
-BG_HTML = """
-<!DOCTYPE html>
-<html>
-<head>
-<style>
-  *{margin:0;padding:0;box-sizing:border-box;}
-  html,body{background:transparent;overflow:hidden;width:100%;height:100%;}
-  canvas{display:block;image-rendering:pixelated;width:100%;height:100%;}
-</style>
-</head>
-<body>
-<canvas id="cv"></canvas>
+# ── This script runs inside the PARENT page via postMessage injection ─────────
+INJECT_SCRIPT = """
 <script>
-var cv=document.getElementById('cv'),cx=cv.getContext('2d');
-var B=32,seed=42.7,frame=0,stars=[],groundY=[],W=0,H=0;
-function rnd(a){return a[Math.floor(Math.random()*a.length)];}
-function noise(x){return Math.sin(x*0.38+seed)*0.5+Math.sin(x*0.81+seed*1.7)*0.3+Math.sin(x*0.19+seed*0.4)*0.2;}
-var BK={grass:['#5D9E2F','#63A832'],dirt:['#866043','#7A5538'],stone:['#5A5A5A','#626262'],
-  coal:['#3A3A3A','#444'],iron:['#8C7E6A','#96886F'],gold:['#C8A42A','#D4B030'],
-  diamond:['#2AA8B8','#30B4C0'],wood:['#7A5518','#6B4A14'],leaves:['#3D6E1A','#447820'],water:['#1A4A8C','#1E5098']};
-function blk(x,y,t){
-  cx.fillStyle=rnd(BK[t]||BK.stone);cx.fillRect(x,y,B,B);
-  cx.fillStyle='rgba(0,0,0,0.22)';cx.fillRect(x+B-3,y,3,B);cx.fillRect(x,y+B-3,B,3);
-  cx.fillStyle='rgba(255,255,255,0.09)';cx.fillRect(x,y,B,3);cx.fillRect(x,y,3,B);}
-function tree(tx,ty){
-  for(var i=0;i<4;i++){cx.fillStyle=rnd(BK.wood);cx.fillRect(tx+B*0.375,ty-i*B,B*0.25,B);}
-  [[-1,-4],[0,-4],[1,-4],[-2,-3],[-1,-3],[0,-3],[1,-3],[2,-3],
-   [-2,-2],[-1,-2],[0,-2],[1,-2],[2,-2],[-1,-1],[0,-1],[1,-1]].forEach(function(p){
-    cx.fillStyle=rnd(BK.leaves);cx.fillRect(tx+p[0]*B*0.5,ty+p[1]*B*0.5,B*0.5,B*0.5);});}
-function creeper(x,y){
-  var p=7;cx.fillStyle='#5DBF5D';cx.fillRect(x-p*3,y-p*14,p*6,p*6);
-  cx.fillStyle='#000';cx.fillRect(x-p*2,y-p*13,p,p);cx.fillRect(x+p,y-p*13,p,p);
-  cx.fillRect(x-p*2,y-p*10,p,p);cx.fillRect(x+p,y-p*10,p,p);cx.fillRect(x-p,y-p*9,p*2,p);
-  cx.fillStyle='#4CAF50';cx.fillRect(x-p*3,y-p*8,p*6,p*8);
-  cx.fillStyle='#3D8C3D';cx.fillRect(x-p*3,y,p*2,p*3);cx.fillRect(x+p,y,p*2,p*3);}
-function torch(tx,ty){
-  cx.fillStyle='#C8A42A';cx.fillRect(tx-2,ty-10,4,10);
-  cx.fillStyle='#FF6600';cx.fillRect(tx-3,ty-16,6,6);
-  cx.fillStyle='#FFDD00';cx.fillRect(tx-2,ty-18,4,4);
-  var g=cx.createRadialGradient(tx,ty-14,2,tx,ty-14,26);
-  g.addColorStop(0,'rgba(255,140,0,0.4)');g.addColorStop(1,'rgba(255,140,0,0)');
-  cx.fillStyle=g;cx.fillRect(tx-26,ty-40,52,52);}
-function setup(){
-  W=cv.width=window.innerWidth;H=cv.height=window.innerHeight;
-  var cols=Math.ceil(W/B)+2,rows=Math.ceil(H/B)+2;
-  groundY=[];
-  for(var c=0;c<cols;c++)groundY[c]=Math.floor(rows*0.62+noise(c)*3.5);
-  stars=[];
-  for(var s=0;s<260;s++)stars.push({x:Math.random()*W,y:Math.random()*H*0.52,
-    sz:Math.random()<0.3?2:1,ph:Math.random()*10,sp:0.015+Math.random()*0.025});}
-function draw(){
-  requestAnimationFrame(draw);frame++;
-  var pw=window.innerWidth,ph=window.innerHeight;
-  if(cv.width!==pw||cv.height!==ph)setup();
-  if(!W)setup();
-  var cols=Math.ceil(W/B)+2,rows=Math.ceil(H/B)+2;
-  var sky=cx.createLinearGradient(0,0,0,H*0.65);
-  sky.addColorStop(0,'#050D1E');sky.addColorStop(0.5,'#0D1A35');sky.addColorStop(1,'#1A2E52');
-  cx.fillStyle=sky;cx.fillRect(0,0,W,H);
-  stars.forEach(function(s){
-    cx.fillStyle='rgba(255,255,255,'+(0.25+0.75*Math.abs(Math.sin(frame*s.sp+s.ph)))+')';
-    cx.fillRect(s.x,s.y,s.sz,s.sz);});
-  cx.fillStyle='#E8E4CC';cx.beginPath();cx.arc(W*0.83,H*0.1,32,0,Math.PI*2);cx.fill();
-  cx.fillStyle='#0D1A35';cx.beginPath();cx.arc(W*0.83+15,H*0.1-10,26,0,Math.PI*2);cx.fill();
-  for(var c=0;c<cols;c++){
-    var top=groundY[c]||Math.floor(rows*0.62);
-    for(var r=top;r<rows;r++){
-      var x2=(c-1)*B,y2=r*B,t;
-      if(r===top)t='grass';
-      else if(r<=top+2)t='dirt';
-      else{var rv=Math.random();t=rv<0.07?'coal':rv<0.04?'iron':rv<0.015?'gold':rv<0.004?'diamond':'stone';}
-      blk(x2,y2,t);}
-    cx.fillStyle='#79C240';cx.fillRect((c-1)*B,top*B,B,5);
-    if(c>2&&c<cols-2&&c%7===3)tree((c-1)*B,top*B);}
-  for(var ww=0;ww<4;ww++){
-    var wc=Math.floor(cols*0.1+ww*cols*0.25),wy=(groundY[Math.min(wc,cols-1)]||0)+1;
-    for(var wd=0;wd<3;wd++){
-      cx.fillStyle='#1A4A8C';cx.fillRect((wc+wd-1)*B,wy*B,B,B);
-      cx.fillStyle='rgba(80,160,255,'+(0.45+0.3*Math.sin(frame*0.06+wd))+')';
-      cx.fillRect((wc+wd-1)*B,wy*B,B,4);}}
-  for(var t=0;t<8;t++){
-    var tc=Math.floor(cols*0.06+t*(cols/8));
-    torch((tc-1)*B+B/2,(groundY[Math.min(tc,cols-1)]||0)*B-B);}
-  creeper(W*0.15,(groundY[Math.floor(W*0.15/B)]||0)*B);
-  creeper(W*0.55,(groundY[Math.floor(W*0.55/B)]||0)*B);
-  creeper(W*0.88,(groundY[Math.floor(W*0.88/B)]||0)*B);
-  for(var ff=0;ff<10;ff++){
-    cx.fillStyle='rgba(180,255,120,'+(0.25+0.75*Math.abs(Math.sin(frame*0.07+ff*1.8)))+')';
-    cx.fillRect(W*0.04+ff*(W/10.5),H*0.44+Math.sin(frame*0.035+ff*1.3)*25,3,3);}
-  cx.fillStyle='rgba(3,8,18,0.38)';cx.fillRect(0,0,W,H);}
-setup();draw();
+// This runs in the Streamlit parent page and injects a full-screen canvas
+(function() {
+    // Remove any existing canvas
+    var old = document.getElementById('mc-world');
+    if (old) old.remove();
+
+    // Create canvas
+    var cv = document.createElement('canvas');
+    cv.id = 'mc-world';
+    cv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none;image-rendering:pixelated;';
+    document.body.insertBefore(cv, document.body.firstChild);
+
+    // Make body bg dark
+    document.body.style.background = '#0A0A08';
+
+    var cx = cv.getContext('2d');
+    var B=32, seed=42.7, frame=0, stars=[], groundY=[], W=0, H=0;
+
+    function rnd(a){return a[Math.floor(Math.random()*a.length)];}
+    function noise(x){return Math.sin(x*0.38+seed)*0.5+Math.sin(x*0.81+seed*1.7)*0.3+Math.sin(x*0.19+seed*0.4)*0.2;}
+
+    var BK={
+        grass:['#5D9E2F','#63A832'],dirt:['#866043','#7A5538'],
+        stone:['#5A5A5A','#626262'],coal:['#3A3A3A','#444'],
+        iron:['#8C7E6A','#96886F'],gold:['#C8A42A','#D4B030'],
+        diamond:['#2AA8B8','#30B4C0'],wood:['#7A5518','#6B4A14'],
+        leaves:['#3D6E1A','#447820'],water:['#1A4A8C','#1E5098']
+    };
+
+    function blk(x,y,t){
+        cx.fillStyle=rnd(BK[t]||BK.stone);cx.fillRect(x,y,B,B);
+        cx.fillStyle='rgba(0,0,0,0.22)';cx.fillRect(x+B-3,y,3,B);cx.fillRect(x,y+B-3,B,3);
+        cx.fillStyle='rgba(255,255,255,0.09)';cx.fillRect(x,y,B,3);cx.fillRect(x,y,3,B);
+    }
+    function tree(tx,ty){
+        for(var i=0;i<4;i++){cx.fillStyle=rnd(BK.wood);cx.fillRect(tx+B*0.375,ty-i*B,B*0.25,B);}
+        [[-1,-4],[0,-4],[1,-4],[-2,-3],[-1,-3],[0,-3],[1,-3],[2,-3],
+         [-2,-2],[-1,-2],[0,-2],[1,-2],[2,-2],[-1,-1],[0,-1],[1,-1]].forEach(function(p){
+            cx.fillStyle=rnd(BK.leaves);cx.fillRect(tx+p[0]*B*0.5,ty+p[1]*B*0.5,B*0.5,B*0.5);});
+    }
+    function creeper(x,y){
+        var p=7;
+        cx.fillStyle='#5DBF5D';cx.fillRect(x-p*3,y-p*14,p*6,p*6);
+        cx.fillStyle='#000';cx.fillRect(x-p*2,y-p*13,p,p);cx.fillRect(x+p,y-p*13,p,p);
+        cx.fillRect(x-p*2,y-p*10,p,p);cx.fillRect(x+p,y-p*10,p,p);cx.fillRect(x-p,y-p*9,p*2,p);
+        cx.fillStyle='#4CAF50';cx.fillRect(x-p*3,y-p*8,p*6,p*8);
+        cx.fillStyle='#3D8C3D';cx.fillRect(x-p*3,y,p*2,p*3);cx.fillRect(x+p,y,p*2,p*3);
+    }
+    function torch(tx,ty){
+        cx.fillStyle='#C8A42A';cx.fillRect(tx-2,ty-10,4,10);
+        cx.fillStyle='#FF6600';cx.fillRect(tx-3,ty-16,6,6);
+        cx.fillStyle='#FFDD00';cx.fillRect(tx-2,ty-18,4,4);
+        var g=cx.createRadialGradient(tx,ty-14,2,tx,ty-14,26);
+        g.addColorStop(0,'rgba(255,140,0,0.4)');g.addColorStop(1,'rgba(255,140,0,0)');
+        cx.fillStyle=g;cx.fillRect(tx-26,ty-40,52,52);
+    }
+    function setup(){
+        W=cv.width=window.innerWidth;
+        H=cv.height=window.innerHeight;
+        var cols=Math.ceil(W/B)+2,rows=Math.ceil(H/B)+2;
+        groundY=[];
+        for(var c=0;c<cols;c++) groundY[c]=Math.floor(rows*0.62+noise(c)*3.5);
+        stars=[];
+        for(var s=0;s<260;s++) stars.push({
+            x:Math.random()*W,y:Math.random()*H*0.52,
+            sz:Math.random()<0.3?2:1,ph:Math.random()*10,sp:0.015+Math.random()*0.025
+        });
+    }
+    function draw(){
+        requestAnimationFrame(draw);frame++;
+        var pw=window.innerWidth,ph=window.innerHeight;
+        if(cv.width!==pw||cv.height!==ph) setup();
+        if(!W) setup();
+        var cols=Math.ceil(W/B)+2,rows=Math.ceil(H/B)+2;
+        // Sky
+        var sky=cx.createLinearGradient(0,0,0,H*0.65);
+        sky.addColorStop(0,'#050D1E');sky.addColorStop(0.5,'#0D1A35');sky.addColorStop(1,'#1A2E52');
+        cx.fillStyle=sky;cx.fillRect(0,0,W,H);
+        // Stars
+        stars.forEach(function(s){
+            cx.fillStyle='rgba(255,255,255,'+(0.25+0.75*Math.abs(Math.sin(frame*s.sp+s.ph)))+')';
+            cx.fillRect(s.x,s.y,s.sz,s.sz);
+        });
+        // Moon
+        cx.fillStyle='#E8E4CC';cx.beginPath();cx.arc(W*0.83,H*0.1,32,0,Math.PI*2);cx.fill();
+        cx.fillStyle='#0D1A35';cx.beginPath();cx.arc(W*0.83+15,H*0.1-10,26,0,Math.PI*2);cx.fill();
+        // Terrain
+        for(var c=0;c<cols;c++){
+            var top=groundY[c]||Math.floor(rows*0.62);
+            for(var r=top;r<rows;r++){
+                var x2=(c-1)*B,y2=r*B,t;
+                if(r===top) t='grass';
+                else if(r<=top+2) t='dirt';
+                else{var rv=Math.random();t=rv<0.07?'coal':rv<0.04?'iron':rv<0.015?'gold':rv<0.004?'diamond':'stone';}
+                blk(x2,y2,t);
+            }
+            cx.fillStyle='#79C240';cx.fillRect((c-1)*B,top*B,B,5);
+            if(c>2&&c<cols-2&&c%7===3) tree((c-1)*B,top*B);
+        }
+        // Water
+        for(var ww=0;ww<4;ww++){
+            var wc=Math.floor(cols*0.1+ww*cols*0.25),wy=(groundY[Math.min(wc,cols-1)]||0)+1;
+            for(var wd=0;wd<3;wd++){
+                cx.fillStyle='#1A4A8C';cx.fillRect((wc+wd-1)*B,wy*B,B,B);
+                cx.fillStyle='rgba(80,160,255,'+(0.45+0.3*Math.sin(frame*0.06+wd))+')';
+                cx.fillRect((wc+wd-1)*B,wy*B,B,4);
+            }
+        }
+        // Torches
+        for(var t=0;t<8;t++){
+            var tc=Math.floor(cols*0.06+t*(cols/8));
+            torch((tc-1)*B+B/2,(groundY[Math.min(tc,cols-1)]||0)*B-B);
+        }
+        // Creepers
+        creeper(W*0.15,(groundY[Math.floor(W*0.15/B)]||0)*B);
+        creeper(W*0.55,(groundY[Math.floor(W*0.55/B)]||0)*B);
+        creeper(W*0.88,(groundY[Math.floor(W*0.88/B)]||0)*B);
+        // Fireflies
+        for(var ff=0;ff<10;ff++){
+            cx.fillStyle='rgba(180,255,120,'+(0.25+0.75*Math.abs(Math.sin(frame*0.07+ff*1.8)))+')';
+            cx.fillRect(W*0.04+ff*(W/10.5),H*0.44+Math.sin(frame*0.035+ff*1.3)*25,3,3);
+        }
+        // Dark overlay
+        cx.fillStyle='rgba(3,8,18,0.38)';cx.fillRect(0,0,W,H);
+    }
+    setup();draw();
+})();
 </script>
-</body>
-</html>
 """
 
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
 
-/* ── Fix: push the iframe to be a true fullscreen background ── */
+html, body { background: #0A0A08 !important; }
+.stApp { background: transparent !important; }
+[data-testid="stAppViewContainer"] { background: transparent !important; }
+[data-testid="stMain"] { background: transparent !important; }
+[data-testid="block-container"] { background: transparent !important; }
+.main, .main .block-container { background: transparent !important; }
+[data-testid="stVerticalBlock"] { background: transparent !important; }
+section.main > div { background: transparent !important; }
+
+/* Hide the tiny iframe strip completely */
 [data-testid="stCustomComponentV1"] {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    z-index: 0 !important;
-    pointer-events: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
     margin: 0 !important;
     padding: 0 !important;
+    display: block !important;
 }
 [data-testid="stCustomComponentV1"] iframe {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    border: none !important;
-    pointer-events: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    display: block !important;
 }
-
-/* ── Make everything above the background ── */
-html, body { background: #0A0A08 !important; }
-.stApp { background: transparent !important; position: relative; z-index: 1; }
-[data-testid="stAppViewContainer"] { background: transparent !important; position: relative; z-index: 1; }
-[data-testid="stMain"] { background: transparent !important; position: relative; z-index: 1; }
-[data-testid="block-container"] { background: transparent !important; position: relative; z-index: 1; }
-.main { background: transparent !important; }
-.main .block-container { background: transparent !important; position: relative; z-index: 1; }
-section.main > div { background: transparent !important; }
-[data-testid="stVerticalBlock"] { background: transparent !important; }
 
 *,*::before,*::after { font-family: 'Press Start 2P', monospace !important; color: #F2EDE4; }
 #MainMenu, footer, header { visibility: hidden; }
 
-/* Sidebar */
 [data-testid="stSidebar"],
 section[data-testid="stSidebar"],
 section[data-testid="stSidebar"] > div {
-    background: rgba(20,20,18,0.97) !important;
+    background: rgba(15,15,13,0.97) !important;
     border-right: 4px solid #2E2E2B !important;
-    position: relative; z-index: 10;
 }
 [data-testid="stSidebar"] * { color: #F2EDE4 !important; font-size: 7px !important; }
 
-/* Title */
 .mc-title { font-size: clamp(18px,3vw,28px); color: #FFD700;
     text-shadow: 4px 4px 0 #000, 6px 6px 0 rgba(0,0,0,0.5);
     text-align: center; margin-bottom: 4px; line-height: 1.4; display: block; }
@@ -166,7 +191,6 @@ section[data-testid="stSidebar"] > div {
 .mc-divider { height: 4px; border: none; margin: 12px 0 20px;
     background: linear-gradient(90deg,transparent,#5D9E2F,#FFD700,#5D9E2F,transparent); }
 
-/* Music box */
 .mc-music-wrap { background: rgba(0,0,0,0.92); border: 4px solid #2E2E2B;
     box-shadow: inset -4px -4px 0 #000, inset 4px 4px 0 #444;
     padding: 12px 16px; margin-bottom: 16px; }
@@ -176,7 +200,6 @@ section[data-testid="stSidebar"] > div {
 [data-testid="stAudio"] audio { width: 100% !important; height: 32px !important;
     filter: invert(1) hue-rotate(180deg) saturate(0.8); border-radius: 0 !important; }
 
-/* Inputs */
 [data-testid="stTextInput"] input { font-size: 8px !important;
     background: rgba(0,0,0,0.92) !important; border: 2px solid #2E2E2B !important;
     color: #F2EDE4 !important; border-radius: 0 !important; }
@@ -186,7 +209,6 @@ section[data-testid="stSidebar"] > div {
 [data-testid="stSlider"] label { font-size: 7px !important; color: #7A7A72 !important;
     letter-spacing: 1px !important; text-transform: uppercase !important; }
 
-/* Button */
 [data-testid="stButton"] button { font-size: 11px !important; letter-spacing: 2px !important;
     background: #5D9E2F !important; color: #fff !important; border: none !important;
     border-radius: 0 !important; padding: 14px !important; width: 100% !important;
@@ -195,25 +217,21 @@ section[data-testid="stSidebar"] > div {
 [data-testid="stButton"] button:hover { filter: brightness(1.2) !important; }
 [data-testid="stButton"] button:active { transform: translateY(2px) !important; }
 
-/* Selectbox */
 [data-testid="stSelectbox"] > div > div { background: rgba(0,0,0,0.92) !important;
     border: 2px solid #2E2E2B !important; border-radius: 0 !important;
     font-size: 8px !important; color: #F2EDE4 !important; }
 
-/* Recipe output */
 .recipe-output { background: rgba(0,0,0,0.92); border: 4px solid #2E2E2B;
     box-shadow: inset 4px 4px 0 #111, inset -4px -4px 0 #333;
     padding: 24px; font-family: 'VT323', monospace !important;
     font-size: 18px; line-height: 1.8; color: #F2EDE4;
     white-space: pre-wrap; min-height: 200px; }
 
-/* Stats */
 .stat-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
 .stat-pill { background: rgba(90,90,90,0.95); border: 2px solid #4A4A45;
     box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 #777;
     padding: 4px 10px; font-size: 7px; color: #FFD700; }
 
-/* Error */
 .secrets-box { background: rgba(184,50,50,0.2); border: 4px solid #B83232;
     padding: 20px; margin: 20px 0; }
 .secrets-box p { font-size: 7px !important; color: #ff9999 !important;
@@ -222,8 +240,8 @@ section[data-testid="stSidebar"] > div {
 </style>
 """, unsafe_allow_html=True)
 
-# ── Background iframe — MUST be first component rendered ─────────────────────
-components.html(BG_HTML, height=10, scrolling=False)
+# ── Inject canvas into PARENT page via iframe postMessage trick ───────────────
+components.html(INJECT_SCRIPT, height=0, scrolling=False)
 
 # ── Music ─────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -301,7 +319,8 @@ if not generate:
 if generate:
     sm={"🟢 Mild (Easy)":"mild","🟡 Medium (Normal)":"medium","🔴 Hot (Hard)":"hot","💀 Hardcore":"extremely hot"}
     dm={"🎮 Any":"any","🌿 Vegetarian":"strictly vegetarian","☘️ Vegan":"strictly vegan"}
-    dtm={"⚡ Quick":"Brief recipe only.","📖 Full Recipe":"Complete recipe with exact quantities and numbered method.",
+    dtm={"⚡ Quick":"Brief recipe only.",
+         "📖 Full Recipe":"Complete recipe with exact quantities and numbered method.",
          "👨‍🍳 Chef's Edition":"Professional level with technique notes and cultural context."}
     sys_p="""You are RecipeGPT, an expert in authentic Indian cuisine.
 Generate recipes in EXACTLY this structure:
