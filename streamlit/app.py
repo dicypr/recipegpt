@@ -16,7 +16,7 @@ st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
 
-/* ── BACKGROUND ── */
+/* BACKGROUND */
 html, body {{
     background-color: #0A0A08 !important;
     background-image: url('data:image/webp;base64,{MC_BG}') !important;
@@ -26,117 +26,76 @@ html, body {{
     background-attachment: fixed !important;
 }}
 
-/* ── TRANSPARENT LAYERS ── */
-.stApp,
-[data-testid="stAppViewContainer"],
-[data-testid="stMain"],
-[data-testid="block-container"],
-.main, .main .block-container,
-[data-testid="stVerticalBlock"],
-section.main > div {{
-    background: transparent !important;
-}}
+/* TRANSPARENT MAIN AREA */
+.stApp {{ background: transparent !important; }}
+[data-testid="stAppViewContainer"] {{ background: transparent !important; }}
+[data-testid="stMain"] {{ background: transparent !important; }}
+[data-testid="block-container"] {{ background: transparent !important; }}
+.main, .main .block-container {{ background: transparent !important; }}
+[data-testid="stVerticalBlock"] {{ background: transparent !important; }}
+section.main > div {{ background: transparent !important; }}
 
-/* ── GLOBAL FONT ── */
+/* FONT */
 *, *::before, *::after {{
     font-family: 'Press Start 2P', monospace !important;
     color: #F2EDE4;
 }}
 #MainMenu, footer, header {{ visibility: hidden; }}
 
-/* ── SIDEBAR ── */
-[data-testid="stSidebar"],
-section[data-testid="stSidebar"],
-section[data-testid="stSidebar"] > div {{
-    background: rgba(8, 8, 6, 0.97) !important;
+/* SIDEBAR — let Streamlit position it naturally */
+[data-testid="stSidebar"] {{
+    background: rgba(8,8,6,0.97) !important;
     border-right: 4px solid #2E2E2B !important;
-    z-index: 99999 !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    height: 100vh !important;
-    overflow-y: auto !important;
+}}
+[data-testid="stSidebar"] > div {{
+    background: rgba(8,8,6,0.97) !important;
+}}
+section[data-testid="stSidebar"] > div {{
+    background: rgba(8,8,6,0.97) !important;
 }}
 [data-testid="stSidebar"] * {{
     color: #F2EDE4 !important;
     font-size: 7px !important;
 }}
 
-/* ── SIDEBAR TOGGLE ARROW (open/close button) ── */
-[data-testid="collapsedControl"],
-button[data-testid="collapsedControl"] {{
-    z-index: 999999 !important;
-    position: fixed !important;
-    top: 50% !important;
-    background: rgba(8,8,6,0.97) !important;
-    border: 2px solid #FFD700 !important;
-    border-radius: 0 !important;
-    color: #FFD700 !important;
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    width: 24px !important;
-    height: 48px !important;
-    align-items: center !important;
-    justify-content: center !important;
-}}
-[data-testid="collapsedControl"] svg {{
-    color: #FFD700 !important;
-    fill: #FFD700 !important;
-}}
-
-/* ── TITLE ── */
+/* TITLE */
 .mc-title {{
-    font-size: clamp(18px, 3vw, 28px);
-    color: #FFD700;
+    font-size: clamp(18px,3vw,28px); color: #FFD700;
     text-shadow: 4px 4px 0 #000, 6px 6px 0 rgba(0,0,0,0.6);
-    text-align: center;
-    margin-bottom: 4px;
-    line-height: 1.4;
-    display: block;
+    text-align: center; margin-bottom: 4px; line-height: 1.4; display: block;
 }}
 .mc-sub {{
-    font-size: 8px; color: #4CAF50;
-    text-align: center; text-shadow: 2px 2px 0 #000;
-    letter-spacing: 2px; margin-bottom: 8px; display: block;
+    font-size: 8px; color: #4CAF50; text-align: center;
+    text-shadow: 2px 2px 0 #000; letter-spacing: 2px; margin-bottom: 8px; display: block;
 }}
 .mc-by {{
-    font-size: 7px; color: #4A4A45;
-    text-align: center; margin-bottom: 20px; display: block;
+    font-size: 7px; color: #4A4A45; text-align: center; margin-bottom: 20px; display: block;
 }}
 .mc-divider {{
     height: 4px; border: none; margin: 12px 0 20px;
-    background: linear-gradient(90deg, transparent, #5D9E2F, #FFD700, #5D9E2F, transparent);
+    background: linear-gradient(90deg,transparent,#5D9E2F,#FFD700,#5D9E2F,transparent);
 }}
 
-/* ── MUSIC BOX ── */
+/* MUSIC BOX */
 .mc-music-wrap {{
-    background: rgba(0,0,0,0.92);
-    border: 4px solid #2E2E2B;
+    background: rgba(0,0,0,0.92); border: 4px solid #2E2E2B;
     box-shadow: inset -4px -4px 0 #000, inset 4px 4px 0 #444;
-    padding: 12px 16px;
-    margin-bottom: 16px;
+    padding: 12px 16px; margin-bottom: 16px;
 }}
 .mc-music-label {{
     font-size: 7px; color: #FFD700; letter-spacing: 2px;
     display: block; margin-bottom: 8px; text-shadow: 2px 2px 0 #000;
 }}
-.mc-music-sub {{
-    font-size: 6px; color: #4A4A45; display: block; margin-bottom: 10px;
-}}
+.mc-music-sub {{ font-size: 6px; color: #4A4A45; display: block; margin-bottom: 10px; }}
 [data-testid="stAudio"] audio {{
     width: 100% !important; height: 32px !important;
-    filter: invert(1) hue-rotate(180deg) saturate(0.8);
-    border-radius: 0 !important;
+    filter: invert(1) hue-rotate(180deg) saturate(0.8); border-radius: 0 !important;
 }}
 
-/* ── INPUTS ── */
+/* INPUTS */
 [data-testid="stTextInput"] input {{
-    font-size: 8px !important;
-    background: rgba(0,0,0,0.92) !important;
-    border: 2px solid #2E2E2B !important;
-    color: #F2EDE4 !important;
-    border-radius: 0 !important;
+    font-size: 8px !important; background: rgba(0,0,0,0.92) !important;
+    border: 2px solid #2E2E2B !important; color: #F2EDE4 !important; border-radius: 0 !important;
 }}
 [data-testid="stTextInput"] input:focus {{ border-color: #FFD700 !important; }}
 [data-testid="stTextInput"] label,
@@ -146,7 +105,7 @@ button[data-testid="collapsedControl"] {{
     letter-spacing: 1px !important; text-transform: uppercase !important;
 }}
 
-/* ── BUTTON ── */
+/* BUTTON */
 [data-testid="stButton"] button {{
     font-size: 11px !important; letter-spacing: 2px !important;
     background: #5D9E2F !important; color: #fff !important;
@@ -158,53 +117,43 @@ button[data-testid="collapsedControl"] {{
 [data-testid="stButton"] button:hover {{ filter: brightness(1.2) !important; }}
 [data-testid="stButton"] button:active {{ transform: translateY(2px) !important; }}
 
-/* ── SELECTBOX ── */
+/* SELECTBOX */
 [data-testid="stSelectbox"] > div > div {{
-    background: rgba(0,0,0,0.92) !important;
-    border: 2px solid #2E2E2B !important;
-    border-radius: 0 !important;
-    font-size: 8px !important;
-    color: #F2EDE4 !important;
+    background: rgba(0,0,0,0.92) !important; border: 2px solid #2E2E2B !important;
+    border-radius: 0 !important; font-size: 8px !important; color: #F2EDE4 !important;
 }}
 
-/* ── RECIPE OUTPUT ── */
+/* RECIPE OUTPUT */
 .recipe-output {{
-    background: rgba(0,0,0,0.92);
-    border: 4px solid #2E2E2B;
+    background: rgba(0,0,0,0.92); border: 4px solid #2E2E2B;
     box-shadow: inset 4px 4px 0 #111, inset -4px -4px 0 #333;
-    padding: 24px;
-    font-family: 'VT323', monospace !important;
-    font-size: 18px; line-height: 1.8;
-    color: #F2EDE4; white-space: pre-wrap; min-height: 200px;
+    padding: 24px; font-family: 'VT323', monospace !important;
+    font-size: 18px; line-height: 1.8; color: #F2EDE4;
+    white-space: pre-wrap; min-height: 200px;
 }}
 
-/* ── STAT PILLS ── */
+/* STATS */
 .stat-row {{ display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }}
 .stat-pill {{
-    background: rgba(90,90,90,0.95);
-    border: 2px solid #4A4A45;
+    background: rgba(90,90,90,0.95); border: 2px solid #4A4A45;
     box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 #777;
     padding: 4px 10px; font-size: 7px; color: #FFD700;
 }}
 
-/* ── ERROR BOX ── */
+/* ERROR */
 .secrets-box {{
-    background: rgba(184,50,50,0.2);
-    border: 4px solid #B83232;
+    background: rgba(184,50,50,0.2); border: 4px solid #B83232;
     padding: 20px; margin: 20px 0;
 }}
 .secrets-box p {{
     font-size: 7px !important; color: #ff9999 !important;
     line-height: 2.5 !important; margin: 0 !important;
 }}
-.secrets-box code {{
-    background: #000; padding: 2px 6px;
-    color: #FFD700; font-size: 6px;
-}}
+.secrets-box code {{ background: #000; padding: 2px 6px; color: #FFD700; font-size: 6px; }}
 </style>
 """, unsafe_allow_html=True)
 
-# ── Music ─────────────────────────────────────────────────────────────────────
+# Music
 st.markdown("""
 <div class="mc-music-wrap">
     <span class="mc-music-label">🎵 C418 — SWEDEN</span>
@@ -216,14 +165,14 @@ if os.path.exists(audio_path):
     with open(audio_path, "rb") as f:
         st.audio(f.read(), format="audio/mpeg")
 
-# ── API Key ───────────────────────────────────────────────────────────────────
+# API Key
 def get_api_key():
     try: return st.secrets["NVIDIA_API_KEY"]
     except Exception: pass
     return os.environ.get("NVIDIA_API_KEY", "")
 api_key = get_api_key()
 
-# ── Header ────────────────────────────────────────────────────────────────────
+# Header
 st.markdown('<span class="mc-title">⚒ RECIPEGPT</span>', unsafe_allow_html=True)
 st.markdown('<span class="mc-sub">MINECRAFT EDITION</span>', unsafe_allow_html=True)
 st.markdown('<span class="mc-by">BY DICYPR · AI RECIPE ENGINE</span>', unsafe_allow_html=True)
@@ -235,7 +184,7 @@ if not api_key:
     <code>NVIDIA_API_KEY = "nvapi-..."</code></p></div>""", unsafe_allow_html=True)
     st.stop()
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
+# Sidebar
 with st.sidebar:
     st.markdown("### 🧪 CRAFTING TABLE")
     st.markdown("---")
@@ -243,25 +192,20 @@ with st.sidebar:
     st.markdown("**QUICK PICKS**")
     c1, c2 = st.columns(2)
     picks = [
-        ("🍗 Butter Chkn", "Butter Chicken"),
-        ("🫘 Dal Makhani",  "Dal Makhani"),
-        ("🍚 Biryani",      "Hyderabadi Biryani"),
-        ("🥬 Palak Paneer", "Palak Paneer"),
-        ("🍮 Gulab Jamun",  "Gulab Jamun"),
-        ("🫛 Chole",        "Chole Masala"),
-        ("🥩 Rogan Josh",   "Rogan Josh"),
-        ("🍶 Kheer",        "Kheer"),
+        ("🍗 Butter Chkn","Butter Chicken"), ("🫘 Dal Makhani","Dal Makhani"),
+        ("🍚 Biryani","Hyderabadi Biryani"), ("🥬 Palak Paneer","Palak Paneer"),
+        ("🍮 Gulab Jamun","Gulab Jamun"),    ("🫛 Chole","Chole Masala"),
+        ("🥩 Rogan Josh","Rogan Josh"),      ("🍶 Kheer","Kheer"),
     ]
-    for i, (lb, vl) in enumerate(picks):
-        cc = c1 if i % 2 == 0 else c2
+    for i,(lb,vl) in enumerate(picks):
+        cc = c1 if i%2==0 else c2
         if cc.button(lb, key=f"p{i}", use_container_width=True):
             st.session_state['dish'] = vl
     st.markdown("---")
     serves = st.slider("SERVES", 1, 10, 4)
-    spice  = st.selectbox("SPICE LEVEL", [
-        "🟢 Mild (Easy)", "🟡 Medium (Normal)", "🔴 Hot (Hard)", "💀 Hardcore"])
-    diet   = st.selectbox("GAME MODE", ["🎮 Any", "🌿 Vegetarian", "☘️ Vegan"])
-    detail = st.selectbox("DETAIL", ["⚡ Quick", "📖 Full Recipe", "👨‍🍳 Chef's Edition"])
+    spice  = st.selectbox("SPICE LEVEL", ["🟢 Mild (Easy)","🟡 Medium (Normal)","🔴 Hot (Hard)","💀 Hardcore"])
+    diet   = st.selectbox("GAME MODE", ["🎮 Any","🌿 Vegetarian","☘️ Vegan"])
+    detail = st.selectbox("DETAIL", ["⚡ Quick","📖 Full Recipe","👨‍🍳 Chef's Edition"])
     st.markdown("---")
     st.markdown("DICYPR AI v3.0")
     st.markdown("NVIDIA NIM ENGINE")
@@ -269,17 +213,9 @@ with st.sidebar:
 if 'dish' in st.session_state:
     dish = st.session_state['dish']
 
-# ── Main content ──────────────────────────────────────────────────────────────
-dc1, dc2 = st.columns(2)
-dc1.markdown(
-    f'<div style="font-size:7px;color:#7A7A72;letter-spacing:2px;margin-bottom:6px">DISH</div>'
-    f'<div style="font-size:13px;color:#FFD700;text-shadow:2px 2px 0 #000">{dish}</div>',
-    unsafe_allow_html=True)
-dc2.markdown(
-    f'<div style="font-size:7px;color:#7A7A72;letter-spacing:2px;margin-bottom:6px">SERVES</div>'
-    f'<div style="font-size:13px;color:#4DD9E0;text-shadow:2px 2px 0 #000">{serves} PLAYERS</div>',
-    unsafe_allow_html=True)
-
+dc1,dc2 = st.columns(2)
+dc1.markdown(f'<div style="font-size:7px;color:#7A7A72;letter-spacing:2px;margin-bottom:6px">DISH</div><div style="font-size:13px;color:#FFD700;text-shadow:2px 2px 0 #000">{dish}</div>',unsafe_allow_html=True)
+dc2.markdown(f'<div style="font-size:7px;color:#7A7A72;letter-spacing:2px;margin-bottom:6px">SERVES</div><div style="font-size:13px;color:#4DD9E0;text-shadow:2px 2px 0 #000">{serves} PLAYERS</div>',unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
 generate = st.button("⚒  CRAFT RECIPE", use_container_width=True)
 st.markdown("<br>", unsafe_allow_html=True)
@@ -297,25 +233,14 @@ if not generate:
         </div>
     </div>""", unsafe_allow_html=True)
 
-# ── Generate ──────────────────────────────────────────────────────────────────
 if generate:
-    sm = {
-        "🟢 Mild (Easy)":     "mild",
-        "🟡 Medium (Normal)": "medium",
-        "🔴 Hot (Hard)":      "hot",
-        "💀 Hardcore":        "extremely hot and fiery"
-    }
-    dm = {
-        "🎮 Any":        "any",
-        "🌿 Vegetarian": "strictly vegetarian",
-        "☘️ Vegan":      "strictly vegan, no dairy or meat"
-    }
+    sm  = {"🟢 Mild (Easy)":"mild","🟡 Medium (Normal)":"medium","🔴 Hot (Hard)":"hot","💀 Hardcore":"extremely hot"}
+    dm  = {"🎮 Any":"any","🌿 Vegetarian":"strictly vegetarian","☘️ Vegan":"strictly vegan"}
     dtm = {
         "⚡ Quick":           "Brief recipe with key ingredients and short method only.",
         "📖 Full Recipe":     "Complete recipe with exact quantities and full numbered method.",
         "👨‍🍳 Chef's Edition": "Professional chef level with technique notes, mistakes to avoid, plating and cultural context."
     }
-
     sys_p = """You are RecipeGPT, an expert in authentic Indian cuisine.
 Generate recipes in EXACTLY this structure:
 
@@ -337,7 +262,7 @@ CHEF'S TIPS:
 <2-3 professional tips>
 [/RECIPE]
 
-Be precise with measurements. Use authentic Indian techniques."""
+Be precise. Use authentic Indian techniques."""
 
     usr_p = f"Recipe for: {dish}\nServes: {serves}\nSpice: {sm.get(spice,'medium')}\nDiet: {dm.get(diet,'any')}\n{dtm.get(detail,'')}"
 
@@ -354,50 +279,35 @@ Be precise with measurements. Use authentic Indian techniques."""
     full  = ""
 
     try:
-        client = OpenAI(
-            base_url="https://integrate.api.nvidia.com/v1",
-            api_key=api_key
-        )
+        client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key)
         with client.chat.completions.create(
             model="meta/llama-3.1-70b-instruct",
-            messages=[
-                {"role": "system", "content": sys_p},
-                {"role": "user",   "content": usr_p}
-            ],
-            temperature=0.7, top_p=0.9,
-            max_tokens=1200, stream=True
+            messages=[{"role":"system","content":sys_p},{"role":"user","content":usr_p}],
+            temperature=0.7, top_p=0.9, max_tokens=1200, stream=True
         ) as stream:
             for chunk in stream:
                 d = chunk.choices[0].delta.content
                 if d:
                     full += d
-                    el = time.time() - start
-                    out_ph.markdown(
-                        f'<div class="recipe-output">{full}▌</div>',
-                        unsafe_allow_html=True)
+                    el = time.time()-start
+                    out_ph.markdown(f'<div class="recipe-output">{full}▌</div>',unsafe_allow_html=True)
                     stats_ph.markdown(
                         f'<div class="stat-row">'
                         f'<span class="stat-pill">⏱ {el:.1f}S</span>'
                         f'<span class="stat-pill">📝 {len(full)} CHARS</span>'
                         f'<span class="stat-pill">🔥 STREAMING</span>'
-                        f'</div>',
-                        unsafe_allow_html=True)
+                        f'</div>',unsafe_allow_html=True)
 
-        el = time.time() - start
-        out_ph.markdown(
-            f'<div class="recipe-output">{full}</div>',
-            unsafe_allow_html=True)
+        el = time.time()-start
+        out_ph.markdown(f'<div class="recipe-output">{full}</div>',unsafe_allow_html=True)
         stats_ph.markdown(
             f'<div class="stat-row">'
             f'<span class="stat-pill">⏱ {el:.1f}S</span>'
             f'<span class="stat-pill">📝 {len(full)} CHARS</span>'
             f'<span class="stat-pill" style="color:#79C240">✔ CRAFTED</span>'
             f'<span class="stat-pill">DICYPR ENGINE</span>'
-            f'</div>',
-            unsafe_allow_html=True)
+            f'</div>',unsafe_allow_html=True)
         st.code(full, language=None)
 
     except Exception as e:
-        out_ph.markdown(
-            f'<div class="secrets-box"><p>⚠ ERROR<br><br>{str(e)}</p></div>',
-            unsafe_allow_html=True)
+        out_ph.markdown(f'<div class="secrets-box"><p>⚠ ERROR<br><br>{str(e)}</p></div>',unsafe_allow_html=True)
