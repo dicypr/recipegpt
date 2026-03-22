@@ -10,18 +10,14 @@ st.set_page_config(
     layout="centered",
 )
 
-# ── The trick: inject a fixed-position iframe as background ───────────────────
-# We use components.html with a negative margin to push it behind everything
-# and position:fixed so it covers the whole screen
-
 BG_HTML = """
 <!DOCTYPE html>
 <html>
 <head>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
-  html,body{background:transparent;overflow:hidden;width:100vw;height:100vh;}
-  canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;image-rendering:pixelated;}
+  html,body{background:transparent;overflow:hidden;width:100%;height:100%;}
+  canvas{display:block;image-rendering:pixelated;width:100%;height:100%;}
 </style>
 </head>
 <body>
@@ -110,99 +106,124 @@ setup();draw();
 </html>
 """
 
-# ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
-:root{--black:#0A0A08;--coal:#1C1C1A;--smoke:#2E2E2B;--gold:#FFD700;
---grass:#5D9E2F;--grass-top:#79C240;--creeper:#4CAF50;--stone-dk:#5A5A5A;
---diamond:#4DD9E0;--chili:#B83232;--paper:#F2EDE4;}
 
-/* Make Streamlit background transparent so iframe canvas shows through */
-html, body { background: #0A0A08 !important; }
-.stApp { background: transparent !important; }
-[data-testid="stAppViewContainer"] { background: transparent !important; }
-[data-testid="stMain"] { background: transparent !important; }
-[data-testid="block-container"] { background: transparent !important; }
-.main { background: transparent !important; }
-.main .block-container { background: transparent !important; }
-[data-testid="stVerticalBlock"] { background: transparent !important; }
-section.main > div { background: transparent !important; }
-
-/* Remove the iframe container spacing */
+/* ── Fix: push the iframe to be a true fullscreen background ── */
 [data-testid="stCustomComponentV1"] {
     position: fixed !important;
-    top: 0 !important; left: 0 !important;
-    width: 100vw !important; height: 100vh !important;
-    z-index: -1 !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 0 !important;
     pointer-events: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 [data-testid="stCustomComponentV1"] iframe {
     position: fixed !important;
-    top: 0 !important; left: 0 !important;
-    width: 100vw !important; height: 100vh !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
     border: none !important;
     pointer-events: none !important;
 }
 
-*,*::before,*::after{font-family:'Press Start 2P',monospace!important;color:#F2EDE4;}
-#MainMenu,footer,header{visibility:hidden;}
+/* ── Make everything above the background ── */
+html, body { background: #0A0A08 !important; }
+.stApp { background: transparent !important; position: relative; z-index: 1; }
+[data-testid="stAppViewContainer"] { background: transparent !important; position: relative; z-index: 1; }
+[data-testid="stMain"] { background: transparent !important; position: relative; z-index: 1; }
+[data-testid="block-container"] { background: transparent !important; position: relative; z-index: 1; }
+.main { background: transparent !important; }
+.main .block-container { background: transparent !important; position: relative; z-index: 1; }
+section.main > div { background: transparent !important; }
+[data-testid="stVerticalBlock"] { background: transparent !important; }
 
-[data-testid="stSidebar"],section[data-testid="stSidebar"],
-section[data-testid="stSidebar"]>div{
-    background:rgba(28,28,26,0.97)!important;
-    border-right:4px solid #2E2E2B!important;}
-[data-testid="stSidebar"] *{color:#F2EDE4!important;font-size:7px!important;}
+*,*::before,*::after { font-family: 'Press Start 2P', monospace !important; color: #F2EDE4; }
+#MainMenu, footer, header { visibility: hidden; }
 
-.mc-title{font-size:clamp(18px,3vw,28px);color:#FFD700;
-    text-shadow:4px 4px 0 #000,6px 6px 0 rgba(0,0,0,0.5);
-    text-align:center;margin-bottom:4px;line-height:1.4;display:block;}
-.mc-sub{font-size:8px;color:#4CAF50;text-align:center;text-shadow:2px 2px 0 #000;
-    letter-spacing:2px;margin-bottom:8px;display:block;}
-.mc-by{font-size:7px;color:#4A4A45;text-align:center;margin-bottom:20px;display:block;}
-.mc-divider{height:4px;border:none;margin:12px 0 20px;
-    background:linear-gradient(90deg,transparent,#5D9E2F,#FFD700,#5D9E2F,transparent);}
+/* Sidebar */
+[data-testid="stSidebar"],
+section[data-testid="stSidebar"],
+section[data-testid="stSidebar"] > div {
+    background: rgba(20,20,18,0.97) !important;
+    border-right: 4px solid #2E2E2B !important;
+    position: relative; z-index: 10;
+}
+[data-testid="stSidebar"] * { color: #F2EDE4 !important; font-size: 7px !important; }
 
-.mc-music-wrap{background:rgba(0,0,0,0.92);border:4px solid #2E2E2B;
-    box-shadow:inset -4px -4px 0 #000,inset 4px 4px 0 #444;
-    padding:12px 16px;margin-bottom:16px;}
-.mc-music-label{font-size:7px;color:#FFD700;letter-spacing:2px;
-    display:block;margin-bottom:8px;text-shadow:2px 2px 0 #000;}
-.mc-music-sub{font-size:6px;color:#4A4A45;display:block;margin-bottom:10px;}
-[data-testid="stAudio"] audio{width:100%!important;height:32px!important;
-    filter:invert(1) hue-rotate(180deg) saturate(0.8);border-radius:0!important;}
+/* Title */
+.mc-title { font-size: clamp(18px,3vw,28px); color: #FFD700;
+    text-shadow: 4px 4px 0 #000, 6px 6px 0 rgba(0,0,0,0.5);
+    text-align: center; margin-bottom: 4px; line-height: 1.4; display: block; }
+.mc-sub { font-size: 8px; color: #4CAF50; text-align: center;
+    text-shadow: 2px 2px 0 #000; letter-spacing: 2px; margin-bottom: 8px; display: block; }
+.mc-by { font-size: 7px; color: #4A4A45; text-align: center; margin-bottom: 20px; display: block; }
+.mc-divider { height: 4px; border: none; margin: 12px 0 20px;
+    background: linear-gradient(90deg,transparent,#5D9E2F,#FFD700,#5D9E2F,transparent); }
 
-[data-testid="stTextInput"] input{font-size:8px!important;background:rgba(0,0,0,0.9)!important;
-    border:2px solid #2E2E2B!important;color:#F2EDE4!important;border-radius:0!important;}
-[data-testid="stTextInput"] input:focus{border-color:#FFD700!important;}
-[data-testid="stTextInput"] label,[data-testid="stSelectbox"] label,[data-testid="stSlider"] label{
-    font-size:7px!important;color:#7A7A72!important;letter-spacing:1px!important;text-transform:uppercase!important;}
-[data-testid="stButton"] button{font-size:11px!important;letter-spacing:2px!important;
-    background:#5D9E2F!important;color:#fff!important;border:none!important;border-radius:0!important;
-    padding:14px!important;width:100%!important;
-    box-shadow:inset -4px -4px 0 #3D6E1A,inset 4px 4px 0 #79C240,0 4px 0 #000!important;
-    text-shadow:2px 2px 0 rgba(0,0,0,0.5)!important;}
-[data-testid="stButton"] button:hover{filter:brightness(1.2)!important;}
-[data-testid="stButton"] button:active{transform:translateY(2px)!important;}
-[data-testid="stSelectbox"]>div>div{background:rgba(0,0,0,0.92)!important;border:2px solid #2E2E2B!important;
-    border-radius:0!important;font-size:8px!important;color:#F2EDE4!important;}
+/* Music box */
+.mc-music-wrap { background: rgba(0,0,0,0.92); border: 4px solid #2E2E2B;
+    box-shadow: inset -4px -4px 0 #000, inset 4px 4px 0 #444;
+    padding: 12px 16px; margin-bottom: 16px; }
+.mc-music-label { font-size: 7px; color: #FFD700; letter-spacing: 2px;
+    display: block; margin-bottom: 8px; text-shadow: 2px 2px 0 #000; }
+.mc-music-sub { font-size: 6px; color: #4A4A45; display: block; margin-bottom: 10px; }
+[data-testid="stAudio"] audio { width: 100% !important; height: 32px !important;
+    filter: invert(1) hue-rotate(180deg) saturate(0.8); border-radius: 0 !important; }
 
-.recipe-output{background:rgba(0,0,0,0.92);border:4px solid #2E2E2B;
-    box-shadow:inset 4px 4px 0 #111,inset -4px -4px 0 #333;
-    padding:24px;font-family:'VT323',monospace!important;font-size:18px;line-height:1.8;
-    color:#F2EDE4;white-space:pre-wrap;min-height:200px;}
-.stat-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;}
-.stat-pill{background:rgba(90,90,90,0.95);border:2px solid #4A4A45;
-    box-shadow:inset -2px -2px 0 #000,inset 2px 2px 0 #777;
-    padding:4px 10px;font-size:7px;color:#FFD700;}
-.secrets-box{background:rgba(184,50,50,0.2);border:4px solid #B83232;padding:20px;margin:20px 0;}
-.secrets-box p{font-size:7px!important;color:#ff9999!important;line-height:2.5!important;margin:0!important;}
-.secrets-box code{background:#000;padding:2px 6px;color:#FFD700;font-size:6px;}
+/* Inputs */
+[data-testid="stTextInput"] input { font-size: 8px !important;
+    background: rgba(0,0,0,0.92) !important; border: 2px solid #2E2E2B !important;
+    color: #F2EDE4 !important; border-radius: 0 !important; }
+[data-testid="stTextInput"] input:focus { border-color: #FFD700 !important; }
+[data-testid="stTextInput"] label,
+[data-testid="stSelectbox"] label,
+[data-testid="stSlider"] label { font-size: 7px !important; color: #7A7A72 !important;
+    letter-spacing: 1px !important; text-transform: uppercase !important; }
+
+/* Button */
+[data-testid="stButton"] button { font-size: 11px !important; letter-spacing: 2px !important;
+    background: #5D9E2F !important; color: #fff !important; border: none !important;
+    border-radius: 0 !important; padding: 14px !important; width: 100% !important;
+    box-shadow: inset -4px -4px 0 #3D6E1A, inset 4px 4px 0 #79C240, 0 4px 0 #000 !important;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.5) !important; }
+[data-testid="stButton"] button:hover { filter: brightness(1.2) !important; }
+[data-testid="stButton"] button:active { transform: translateY(2px) !important; }
+
+/* Selectbox */
+[data-testid="stSelectbox"] > div > div { background: rgba(0,0,0,0.92) !important;
+    border: 2px solid #2E2E2B !important; border-radius: 0 !important;
+    font-size: 8px !important; color: #F2EDE4 !important; }
+
+/* Recipe output */
+.recipe-output { background: rgba(0,0,0,0.92); border: 4px solid #2E2E2B;
+    box-shadow: inset 4px 4px 0 #111, inset -4px -4px 0 #333;
+    padding: 24px; font-family: 'VT323', monospace !important;
+    font-size: 18px; line-height: 1.8; color: #F2EDE4;
+    white-space: pre-wrap; min-height: 200px; }
+
+/* Stats */
+.stat-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.stat-pill { background: rgba(90,90,90,0.95); border: 2px solid #4A4A45;
+    box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 #777;
+    padding: 4px 10px; font-size: 7px; color: #FFD700; }
+
+/* Error */
+.secrets-box { background: rgba(184,50,50,0.2); border: 4px solid #B83232;
+    padding: 20px; margin: 20px 0; }
+.secrets-box p { font-size: 7px !important; color: #ff9999 !important;
+    line-height: 2.5 !important; margin: 0 !important; }
+.secrets-box code { background: #000; padding: 2px 6px; color: #FFD700; font-size: 6px; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Render the background iframe ──────────────────────────────────────────────
-components.html(BG_HTML, height=600, scrolling=False)
+# ── Background iframe — MUST be first component rendered ─────────────────────
+components.html(BG_HTML, height=10, scrolling=False)
 
 # ── Music ─────────────────────────────────────────────────────────────────────
 st.markdown("""
