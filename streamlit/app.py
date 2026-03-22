@@ -1,394 +1,218 @@
 import streamlit as st
-import torch
-import torch.nn as nn
-from torch.nn import functional as F
+import anthropic
 import time
-import os
-import requests
 
-# ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="RecipeGPT 🍛",
+    page_title="RecipeGPT — Minecraft Edition",
     page_icon="🍛",
     layout="centered",
 )
 
-# ── Custom CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
 :root {
-    --saffron:   #F4A820;
-    --turmeric:  #E8840A;
-    --chili:     #C0392B;
-    --cardamom:  #2C5F2E;
-    --cream:     #FDF6EC;
-    --ink:       #1A0E00;
-    --smoke:     #6B5B45;
+    --black:#0A0A08;--coal:#1C1C1A;--smoke:#2E2E2B;--ash:#4A4A45;--dust:#7A7A72;
+    --paper:#F2EDE4;--grass:#5D9E2F;--grass-top:#79C240;--saffron:#E8971A;
+    --gold:#FFD700;--diamond:#4DD9E0;--creeper:#4CAF50;--stone:#8B8B8B;
+    --stone-dk:#5A5A5A;--chili:#B83232;
 }
-
-html, body, [class*="css"] {
-    font-family: 'DM Sans', sans-serif;
-    background-color: var(--cream);
-    color: var(--ink);
+html,body,[class*="css"],[data-testid="stAppViewContainer"]{
+    font-family:'Press Start 2P',monospace!important;
+    background-color:var(--black)!important;color:var(--paper)!important;
 }
-
-/* Hide Streamlit chrome */
-#MainMenu, footer, header { visibility: hidden; }
-
-/* Hero title */
-.hero-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 3.4rem;
-    font-weight: 700;
-    color: var(--ink);
-    line-height: 1.1;
-    margin-bottom: 0;
+#MainMenu,footer,header{visibility:hidden;}
+[data-testid="stAppViewContainer"]{
+    background:var(--black);
+    background-image:radial-gradient(circle at 20% 20%,rgba(77,217,224,0.03) 0%,transparent 50%),
+    radial-gradient(circle at 80% 80%,rgba(93,158,47,0.04) 0%,transparent 50%);
 }
-.hero-sub {
-    font-family: 'Playfair Display', serif;
-    font-style: italic;
-    font-size: 1.15rem;
-    color: var(--smoke);
-    margin-top: 0.3rem;
-    margin-bottom: 2rem;
-}
-.accent { color: var(--saffron); }
-
-/* Divider */
-.spice-divider {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 1.5rem 0;
-    color: var(--turmeric);
-    font-size: 1.2rem;
-    letter-spacing: 6px;
-}
-.spice-divider::before, .spice-divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--saffron), transparent);
-}
-
-/* Generate button */
-.stButton > button {
-    background: linear-gradient(135deg, var(--saffron), var(--turmeric)) !important;
-    color: var(--ink) !important;
-    font-family: 'DM Sans', sans-serif !important;
-    font-weight: 500 !important;
-    font-size: 1rem !important;
-    border: none !important;
-    border-radius: 8px !important;
-    padding: 0.65rem 2rem !important;
-    width: 100% !important;
-    cursor: pointer !important;
-    transition: opacity 0.2s ease !important;
-    letter-spacing: 0.5px !important;
-}
-.stButton > button:hover { opacity: 0.88 !important; }
-
-/* Recipe output box */
-.recipe-box {
-    background: #fff;
-    border-left: 4px solid var(--saffron);
-    border-radius: 0 12px 12px 0;
-    padding: 1.5rem 1.8rem;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.88rem;
-    line-height: 1.75;
-    color: var(--ink);
-    white-space: pre-wrap;
-    box-shadow: 4px 4px 24px rgba(244,168,32,0.08);
-    min-height: 120px;
-}
-
-/* Slider label */
-.slider-label {
-    font-size: 0.78rem;
-    font-weight: 500;
-    color: var(--smoke);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 0.2rem;
-}
-
-/* Stats bar */
-.stat-pill {
-    display: inline-block;
-    background: rgba(244,168,32,0.12);
-    border: 1px solid rgba(244,168,32,0.3);
-    border-radius: 20px;
-    padding: 2px 12px;
-    font-size: 0.78rem;
-    color: var(--turmeric);
-    font-family: 'DM Mono', monospace;
-    margin-right: 6px;
-}
-
-/* Tip box */
-.tip-box {
-    background: rgba(44,95,46,0.07);
-    border-radius: 8px;
-    padding: 0.8rem 1rem;
-    font-size: 0.82rem;
-    color: var(--cardamom);
-    border-left: 3px solid var(--cardamom);
-}
-
-/* Model status */
-.status-ok  { color: var(--cardamom); font-size:0.82rem; }
-.status-err { color: var(--chili);    font-size:0.82rem; }
-
-/* Input styling */
-.stTextInput > div > div > input {
-    border-radius: 8px !important;
-    border: 1.5px solid rgba(244,168,32,0.4) !important;
-    font-family: 'DM Mono', monospace !important;
-    font-size: 0.95rem !important;
-    background: #fff !important;
-    color: var(--ink) !important;
-}
-.stTextInput > div > div > input:focus {
-    border-color: var(--saffron) !important;
-    box-shadow: 0 0 0 2px rgba(244,168,32,0.15) !important;
-}
+.mc-title{font-family:'Press Start 2P',monospace;font-size:28px;color:var(--gold);
+    text-shadow:4px 4px 0 #000,6px 6px 0 rgba(0,0,0,0.3);text-align:center;
+    margin-bottom:4px;line-height:1.4;}
+.mc-sub{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--creeper);
+    text-align:center;text-shadow:2px 2px 0 #000;letter-spacing:2px;margin-bottom:8px;}
+.mc-by{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--ash);
+    text-align:center;margin-bottom:32px;}
+.mc-divider{height:4px;background:linear-gradient(90deg,transparent,var(--grass),
+    var(--gold),var(--grass),transparent);margin:16px 0 24px;border:none;}
+[data-testid="stTextInput"] input,[data-testid="stSelectbox"] select{
+    font-family:'Press Start 2P',monospace!important;font-size:8px!important;
+    background:#000!important;border:2px solid var(--smoke)!important;
+    color:var(--paper)!important;border-radius:0!important;}
+[data-testid="stTextInput"] label,[data-testid="stSelectbox"] label,
+[data-testid="stSlider"] label{
+    font-family:'Press Start 2P',monospace!important;font-size:7px!important;
+    color:var(--dust)!important;letter-spacing:1px!important;text-transform:uppercase!important;}
+[data-testid="stButton"] button{
+    font-family:'Press Start 2P',monospace!important;font-size:11px!important;
+    letter-spacing:2px!important;background:var(--grass)!important;color:#fff!important;
+    border:none!important;border-radius:0!important;padding:14px 28px!important;
+    width:100%!important;
+    box-shadow:inset -4px -4px 0 var(--stone-dk),inset 4px 4px 0 var(--grass-top),0 4px 0 #000!important;
+    text-shadow:2px 2px 0 rgba(0,0,0,0.5)!important;}
+[data-testid="stButton"] button:hover{filter:brightness(1.2)!important;}
+[data-testid="stSelectbox"]>div>div{
+    background:#000!important;border:2px solid var(--smoke)!important;
+    border-radius:0!important;font-family:'Press Start 2P',monospace!important;
+    font-size:8px!important;color:var(--paper)!important;}
+.recipe-output{background:#000;border:4px solid var(--smoke);
+    box-shadow:inset 2px 2px 0 #000,inset -2px -2px 0 #333;
+    padding:24px;font-family:'VT323',monospace;font-size:18px;line-height:1.7;
+    color:var(--paper);white-space:pre-wrap;min-height:200px;}
+.stat-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;}
+.stat-pill{background:var(--stone-dk);border:2px solid var(--ash);
+    box-shadow:inset -2px -2px 0 #000,inset 2px 2px 0 #666;
+    padding:4px 10px;font-size:7px;color:var(--gold);font-family:'Press Start 2P',monospace;}
+.secrets-box{background:rgba(184,50,50,0.15);border:4px solid var(--chili);
+    box-shadow:inset -4px -4px 0 #000,inset 4px 4px 0 rgba(255,100,100,0.2);
+    padding:20px;margin:20px 0;}
+.secrets-box p{font-size:7px!important;color:#ff9999!important;
+    line-height:2.5!important;margin:0!important;}
+.secrets-box code{background:#000;padding:2px 6px;color:var(--gold);
+    font-family:'Press Start 2P',monospace;font-size:6px;}
+[data-testid="stSidebar"]{background:var(--coal)!important;
+    border-right:4px solid var(--smoke)!important;}
+[data-testid="stSidebar"] *{font-family:'Press Start 2P',monospace!important;font-size:7px!important;}
 </style>
 """, unsafe_allow_html=True)
 
-
-# ── Model definition (must match training notebook exactly) ────────────────────
-class Head(nn.Module):
-    def __init__(self, n_embd, head_size, block_size, dropout):
-        super().__init__()
-        self.key   = nn.Linear(n_embd, head_size, bias=False)
-        self.query = nn.Linear(n_embd, head_size, bias=False)
-        self.value = nn.Linear(n_embd, head_size, bias=False)
-        self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x):
-        B, T, C = x.shape
-        k, q = self.key(x), self.query(x)
-        wei = q @ k.transpose(-2, -1) * k.shape[-1]**-0.5
-        wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
-        wei = self.dropout(F.softmax(wei, dim=-1))
-        return wei @ self.value(x)
-
-
-class MultiHeadAttention(nn.Module):
-    def __init__(self, n_embd, num_heads, head_size, dropout):
-        super().__init__()
-        self.heads   = nn.ModuleList([Head(n_embd, head_size, 256, dropout) for _ in range(num_heads)])
-        self.proj    = nn.Linear(head_size * num_heads, n_embd)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x):
-        return self.dropout(self.proj(torch.cat([h(x) for h in self.heads], dim=-1)))
-
-
-class FeedForward(nn.Module):
-    def __init__(self, n_embd, dropout):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(n_embd, 4 * n_embd),
-            nn.GELU(),
-            nn.Linear(4 * n_embd, n_embd),
-            nn.Dropout(dropout),
-        )
-
-    def forward(self, x):
-        return self.net(x)
-
-
-class Block(nn.Module):
-    def __init__(self, n_embd, n_head, dropout):
-        super().__init__()
-        head_size = n_embd // n_head
-        self.sa  = MultiHeadAttention(n_embd, n_head, head_size, dropout)
-        self.ffn = FeedForward(n_embd, dropout)
-        self.ln1 = nn.LayerNorm(n_embd)
-        self.ln2 = nn.LayerNorm(n_embd)
-
-    def forward(self, x):
-        x = x + self.sa(self.ln1(x))
-        x = x + self.ffn(self.ln2(x))
-        return x
-
-
-class RecipeGPT(nn.Module):
-    def __init__(self, vocab_size, n_embd=384, n_head=6, n_layer=6, block_size=256, dropout=0.2):
-        super().__init__()
-        self.block_size = block_size
-        self.tok_emb = nn.Embedding(vocab_size, n_embd)
-        self.pos_emb = nn.Embedding(block_size, n_embd)
-        self.blocks  = nn.Sequential(*[Block(n_embd, n_head, dropout) for _ in range(n_layer)])
-        self.ln_f    = nn.LayerNorm(n_embd)
-        self.lm_head = nn.Linear(n_embd, vocab_size)
-        self.tok_emb.weight = self.lm_head.weight
-
-    def forward(self, idx):
-        B, T = idx.shape
-        x = self.tok_emb(idx) + self.pos_emb(torch.arange(T, device=idx.device))
-        return self.lm_head(self.ln_f(self.blocks(x)))
-
-    @torch.no_grad()
-    def generate_token(self, idx, temperature=1.0, top_k=None):
-        logits = self.forward(idx[:, -self.block_size:])[:, -1, :] / temperature
-        if top_k is not None:
-            v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
-            logits[logits < v[:, [-1]]] = float('-inf')
-        return torch.multinomial(F.softmax(logits, dim=-1), num_samples=1)
-
-
-# ── Load model ─────────────────────────────────────────────────────────────────
-MODEL_PATH = "recipe_gpt.pt"
-
-@st.cache_resource(show_spinner=False)
-def load_model():
-    """Load model from local file or Google Drive."""
-    if not os.path.exists(MODEL_PATH):
-        # ── If you host on Google Drive, paste the direct download URL below ──
-        # GDRIVE_URL = "https://drive.google.com/uc?export=download&id=YOUR_FILE_ID"
-        # r = requests.get(GDRIVE_URL); open(MODEL_PATH,'wb').write(r.content)
-        return None, None, None, "Model file not found. Train in Colab first, then place recipe_gpt.pt here."
-
+def get_api_key():
     try:
-        ckpt = torch.load(MODEL_PATH, map_location='cpu')
-        hp   = ckpt.get('hyperparams', dict(n_embd=384, n_head=6, n_layer=6, block_size=256))
-        stoi = ckpt['stoi']
-        itos = ckpt['itos']
-        model = RecipeGPT(
-            vocab_size  = ckpt['vocab_size'],
-            n_embd      = hp['n_embd'],
-            n_head      = hp['n_head'],
-            n_layer     = hp['n_layer'],
-            block_size  = hp['block_size'],
-        )
-        model.load_state_dict(ckpt['model_state_dict'])
-        model.eval()
-        params = sum(p.numel() for p in model.parameters())
-        return model, stoi, itos, f"✓ Model loaded — {params/1e6:.1f}M parameters"
-    except Exception as e:
-        return None, None, None, f"Error loading model: {e}"
+        return st.secrets["ANTHROPIC_API_KEY"]
+    except Exception:
+        pass
+    import os
+    return os.environ.get("ANTHROPIC_API_KEY", "")
 
+api_key = get_api_key()
 
-# ── UI ─────────────────────────────────────────────────────────────────────────
-st.markdown('<h1 class="hero-title">Recipe<span class="accent">GPT</span></h1>', unsafe_allow_html=True)
-st.markdown('<p class="hero-sub">A tiny transformer that dreams up Indian recipes</p>', unsafe_allow_html=True)
-st.markdown('<div class="spice-divider">✦ ✦ ✦</div>', unsafe_allow_html=True)
+st.markdown('<div class="mc-title">⚒ RECIPEGPT</div>', unsafe_allow_html=True)
+st.markdown('<div class="mc-sub">MINECRAFT EDITION</div>', unsafe_allow_html=True)
+st.markdown('<div class="mc-by">BY DICYPR · AI RECIPE ENGINE</div>', unsafe_allow_html=True)
+st.markdown('<hr class="mc-divider">', unsafe_allow_html=True)
 
-# Load model
-with st.spinner("Loading model..."):
-    model, stoi, itos, model_msg = load_model()
-
-if model is not None:
-    st.markdown(f'<p class="status-ok">{model_msg}</p>', unsafe_allow_html=True)
-else:
-    st.markdown(f'<p class="status-err">{model_msg}</p>', unsafe_allow_html=True)
+if not api_key:
     st.markdown("""
-    <div class="tip-box">
-    <b>How to get the model:</b><br>
-    1. Run the training notebook in Google Colab (GPU runtime)<br>
-    2. Download <code>recipe_gpt.pt</code> from Colab's file panel<br>
-    3. Place it in the same folder as <code>app.py</code><br>
-    4. Restart this app
+    <div class="secrets-box">
+    <p>⚠ NO API KEY FOUND<br><br>
+    TO DEPLOY ON STREAMLIT CLOUD:<br>
+    1. GO TO YOUR APP DASHBOARD<br>
+    2. CLICK THE 3 DOTS MENU<br>
+    3. CLICK EDIT SECRETS<br>
+    4. ADD THIS LINE:<br><br>
+    <code>ANTHROPIC_API_KEY = "sk-ant-..."</code><br><br>
+    FOR LOCAL DEV, RUN:<br>
+    <code>export ANTHROPIC_API_KEY=sk-ant-...</code>
+    </p>
     </div>
     """, unsafe_allow_html=True)
     st.stop()
 
-st.markdown("###")
+with st.sidebar:
+    st.markdown("### 🧪 CRAFTING TABLE")
+    st.markdown("---")
+    dish = st.text_input("DISH NAME", value="Butter Chicken", placeholder="Type any Indian dish...")
+    st.markdown("**QUICK PICKS**")
+    col1, col2 = st.columns(2)
+    picks = [
+        ("🍗 Butter Chkn", "Butter Chicken"),
+        ("🫘 Dal Makhani", "Dal Makhani"),
+        ("🍚 Biryani",     "Hyderabadi Biryani"),
+        ("🥬 Palak Paneer","Palak Paneer"),
+        ("🍮 Gulab Jamun", "Gulab Jamun"),
+        ("🫛 Chole",       "Chole Masala"),
+        ("🥩 Rogan Josh",  "Rogan Josh"),
+        ("🍶 Kheer",       "Kheer"),
+    ]
+    for i,(label,val) in enumerate(picks):
+        c = col1 if i%2==0 else col2
+        if c.button(label, key=f"p{i}", use_container_width=True):
+            st.session_state['dish'] = val
+    st.markdown("---")
+    serves = st.slider("SERVES", 1, 10, 4)
+    spice  = st.selectbox("SPICE LEVEL", [
+        "🟢 Mild (Easy)","🟡 Medium (Normal)","🔴 Hot (Hard)","💀 Hardcore"])
+    diet   = st.selectbox("GAME MODE", ["🎮 Any","🌿 Vegetarian","☘️ Vegan"])
+    detail = st.selectbox("DETAIL", ["⚡ Quick","📖 Full Recipe","👨‍🍳 Chef's Edition"])
+    st.markdown("---")
+    st.markdown("DICYPR AI v2.0")
 
-# ── Controls ───────────────────────────────────────────────────────────────────
-col1, col2 = st.columns([2, 1])
+if 'dish' in st.session_state:
+    dish = st.session_state['dish']
 
-with col1:
-    prompt = st.text_input(
-        "Prompt",
-        value="BUTTER CHICKEN",
-        placeholder="e.g. PANEER, DAL, SAMOSA...",
-        label_visibility="collapsed",
-    )
-    st.caption("Type a recipe name, ingredient, or leave blank for surprise generation")
+c1,c2 = st.columns(2)
+c1.markdown(f'<div style="font-size:7px;color:#7A7A72;letter-spacing:2px;margin-bottom:4px">DISH</div><div style="font-size:14px;color:#FFD700;text-shadow:2px 2px 0 #000">{dish}</div>', unsafe_allow_html=True)
+c2.markdown(f'<div style="font-size:7px;color:#7A7A72;letter-spacing:2px;margin-bottom:4px">SERVES</div><div style="font-size:14px;color:#4DD9E0;text-shadow:2px 2px 0 #000">{serves} PLAYERS</div>', unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
+generate = st.button("⚒  CRAFT RECIPE", use_container_width=True)
+st.markdown("<br>", unsafe_allow_html=True)
 
-with col2:
-    max_tokens = st.number_input("Max tokens", min_value=50, max_value=1000, value=400, step=50)
+out_ph   = st.empty()
+stats_ph = st.empty()
 
-col3, col4 = st.columns(2)
-with col3:
-    st.markdown('<p class="slider-label">Temperature</p>', unsafe_allow_html=True)
-    temperature = st.slider("temperature", 0.3, 1.5, 0.8, 0.05, label_visibility="collapsed")
-    temp_desc = "🧊 Focused" if temperature < 0.6 else ("⚖️ Balanced" if temperature < 1.1 else "🔥 Creative")
-    st.caption(f"{temp_desc}  —  {temperature}")
+if not generate:
+    out_ph.markdown('<div class="recipe-output" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;min-height:300px"><div style="font-size:40px">🍳</div><div style="font-size:10px;color:#333;text-align:center;line-height:2.5">NO RECIPE CRAFTED YET<br>SELECT A DISH AND PRESS<br>[ CRAFT RECIPE ]</div></div>', unsafe_allow_html=True)
 
-with col4:
-    st.markdown('<p class="slider-label">Top-K Sampling</p>', unsafe_allow_html=True)
-    top_k = st.slider("top_k", 5, 100, 40, 5, label_visibility="collapsed")
-    st.caption(f"Sampling from top {top_k} tokens")
+if generate:
+    spice_map  = {"🟢 Mild (Easy)":"mild","🟡 Medium (Normal)":"medium","🔴 Hot (Hard)":"hot","💀 Hardcore":"extra hot and fiery"}
+    diet_map   = {"🎮 Any":"any","🌿 Vegetarian":"strictly vegetarian","☘️ Vegan":"strictly vegan, no dairy or meat"}
+    detail_map = {
+        "⚡ Quick":          "Brief recipe with key ingredients and short method only.",
+        "📖 Full Recipe":    "Complete recipe with exact quantities and full numbered method.",
+        "👨‍🍳 Chef's Edition": "Professional chef level — exact quantities, technique notes, why each step matters, mistakes to avoid, plating and cultural context."
+    }
 
-st.markdown("###")
-generate_btn = st.button("✦ Generate Recipe", use_container_width=True)
-st.markdown("###")
+    system_prompt = """You are RecipeGPT, an expert in authentic Indian cuisine.
+Generate accurate, detailed and inspiring Indian recipes in EXACTLY this structure:
 
-# ── Generation ─────────────────────────────────────────────────────────────────
-if generate_btn:
-    output_box = st.empty()
-    generated  = ""
-    start_time = time.time()
+[RECIPE]
+NAME: <dish name>
+CATEGORY: <cuisine region and type>
+SERVES: <number>
+PREP TIME: <time>
+COOK TIME: <time>
+
+INGREDIENTS:
+- <exact quantity> <ingredient>
+
+METHOD:
+1. <detailed step>
+2. <detailed step>
+
+CHEF'S TIPS:
+<2-3 professional tips>
+[/RECIPE]
+
+Be precise with measurements. Use authentic Indian cooking techniques."""
+
+    user_prompt = f"Recipe for: {dish}\nServes: {serves}\nSpice: {spice_map.get(spice,'medium')}\nDiet: {diet_map.get(diet,'any')}\n{detail_map.get(detail,'')}"
+
+    out_ph.markdown('<div class="recipe-output" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;min-height:300px"><div style="font-size:32px">🔥</div><div style="font-size:9px;color:#FFD700;text-align:center;letter-spacing:2px">SMELTING IN FURNACE...</div></div>', unsafe_allow_html=True)
+
+    start     = time.time()
+    full_text = ""
 
     try:
-        if prompt.strip():
-            # Encode only chars that exist in vocab
-            safe_prompt = "".join(c for c in prompt if c in stoi)
-            if not safe_prompt:
-                safe_prompt = list(stoi.keys())[0]
-            ctx = torch.tensor([[ stoi[c] for c in safe_prompt ]], dtype=torch.long)
-            generated = safe_prompt
-        else:
-            ctx = torch.zeros((1, 1), dtype=torch.long)
+        client = anthropic.Anthropic(api_key=api_key)
+        with client.messages.stream(
+            model="claude-sonnet-4-20250514",
+            max_tokens=1200,
+            system=system_prompt,
+            messages=[{"role":"user","content":user_prompt}]
+        ) as stream:
+            for chunk in stream.text_stream:
+                full_text += chunk
+                elapsed    = time.time()-start
+                out_ph.markdown(f'<div class="recipe-output">{full_text}▌</div>', unsafe_allow_html=True)
+                stats_ph.markdown(f'<div class="stat-row"><span class="stat-pill">⏱ {elapsed:.1f}S</span><span class="stat-pill">📝 {len(full_text)} CHARS</span><span class="stat-pill">🔥 STREAMING</span></div>', unsafe_allow_html=True)
 
-        for i in range(max_tokens):
-            next_tok = model.generate_token(ctx, temperature=temperature, top_k=top_k)
-            char = itos[next_tok.item()]
-            generated += char
-            ctx = torch.cat((ctx, next_tok), dim=1)
+        elapsed = time.time()-start
+        out_ph.markdown(f'<div class="recipe-output">{full_text}</div>', unsafe_allow_html=True)
+        stats_ph.markdown(f'<div class="stat-row"><span class="stat-pill">⏱ {elapsed:.1f}S</span><span class="stat-pill">📝 {len(full_text)} CHARS</span><span class="stat-pill" style="color:#79C240">✔ CRAFTED</span><span class="stat-pill">DICYPR ENGINE</span></div>', unsafe_allow_html=True)
+        st.code(full_text, language=None)
 
-            # Update display every 8 chars for smooth streaming feel
-            if i % 8 == 0 or i == max_tokens - 1:
-                output_box.markdown(
-                    f'<div class="recipe-box">{generated}▌</div>',
-                    unsafe_allow_html=True
-                )
-
-        elapsed = time.time() - start_time
-        tok_per_sec = max_tokens / elapsed
-
-        # Final output without cursor
-        output_box.markdown(f'<div class="recipe-box">{generated}</div>', unsafe_allow_html=True)
-
-        # Stats
-        st.markdown(
-            f'<div style="margin-top:0.8rem">'
-            f'<span class="stat-pill">⏱ {elapsed:.1f}s</span>'
-            f'<span class="stat-pill">⚡ {tok_per_sec:.0f} tok/s</span>'
-            f'<span class="stat-pill">📝 {len(generated)} chars</span>'
-            f'<span class="stat-pill">🌡 temp={temperature}</span>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-
+    except anthropic.AuthenticationError:
+        out_ph.markdown('<div class="secrets-box"><p>⚠ INVALID API KEY<br><br>CHECK YOUR KEY IN STREAMLIT SECRETS.</p></div>', unsafe_allow_html=True)
     except Exception as e:
-        st.error(f"Generation error: {e}")
-
-# ── Footer tips ────────────────────────────────────────────────────────────────
-st.markdown("---")
-st.markdown("""
-<div class="tip-box">
-<b>Tips:</b> &nbsp;
-Try prompts like <code>BIRYANI</code>, <code>KHEER</code>, <code>TANDOORI</code>, <code>GULAB JAMUN</code>. &nbsp;
-Lower temperature → more recipe-like. &nbsp;
-Higher temperature → more experimental (and occasionally chaotic 🌶️).
-</div>
-""", unsafe_allow_html=True)
+        out_ph.error(f"Error: {str(e)}")
