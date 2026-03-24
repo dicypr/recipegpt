@@ -4,7 +4,7 @@
 > **Built by [Dicypr](https://github.com/dicypr)**
 
 ![RecipeGPT Screenshot](screenshot.png)
-
+--
 ---
 
 ## 🌐 Live Demo
