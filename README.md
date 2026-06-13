@@ -2,7 +2,7 @@
 
 > *An AI-powered Indian recipe generator with a full Minecraft-themed UI, live music, and pixel art scenery.*
 > **Built by [Dicypr](https://github.com/dicypr)**
-
+......
 ![RecipeGPT Screenshot](screenshot.png)
 --
 ---
