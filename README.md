@@ -5,7 +5,7 @@
 ......
 ![RecipeGPT Screenshot](screenshot.png)
 --
----
+---..
 
 ## 🌐 Live Demo
 
